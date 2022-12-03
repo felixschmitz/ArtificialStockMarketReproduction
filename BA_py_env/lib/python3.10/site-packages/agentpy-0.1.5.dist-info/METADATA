@@ -1,0 +1,68 @@
+Metadata-Version: 2.1
+Name: agentpy
+Version: 0.1.5
+Summary: Agent-based modeling in Python
+Home-page: https://agentpy.readthedocs.io/
+Author: Joël Foramitti
+Author-email: joel.foramitti@uab.cat
+License: BSD 3-Clause
+Download-URL: https://github.com/JoelForamitti/agentpy
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Intended Audience :: Science/Research
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+Requires-Dist: numpy (>=1.19)
+Requires-Dist: scipy (>=1.5.2)
+Requires-Dist: matplotlib (>=3.3.3)
+Requires-Dist: networkx (>=2.5)
+Requires-Dist: pandas (>=1.1.3)
+Requires-Dist: SALib (>=1.3.7)
+Requires-Dist: joblib (>=1.1.0)
+Requires-Dist: importlib-metadata (~=1.0) ; python_version < "3.8"
+Provides-Extra: dev
+Requires-Dist: setuptools (>=51.3.3) ; extra == 'dev'
+Requires-Dist: pytest (>=5.4.3) ; extra == 'dev'
+Requires-Dist: coverage (>=5.3) ; extra == 'dev'
+Requires-Dist: sphinx (>=3.2.1) ; extra == 'dev'
+Requires-Dist: nbsphinx (>=0.7.1) ; extra == 'dev'
+Requires-Dist: sphinx-rtd-theme (>=0.4.3) ; extra == 'dev'
+Provides-Extra: docs
+Requires-Dist: sphinx (==4.0.2) ; extra == 'docs'
+Requires-Dist: nbsphinx (>=0.7.1) ; extra == 'docs'
+Requires-Dist: sphinx-rtd-theme (>=0.4.3) ; extra == 'docs'
+Requires-Dist: IPython (>=7.19.0) ; extra == 'docs'
+
+# AgentPy - Agent-based modeling in Python
+
+[![PyPI](https://img.shields.io/pypi/v/agentpy)](https://pypi.org/project/agentpy/)
+[![GitHub](https://img.shields.io/github/license/joelforamitti/agentpy)](https://github.com/JoelForamitti/agentpy/blob/master/LICENSE)
+[![Build Status](https://travis-ci.com/JoelForamitti/agentpy.svg?branch=master)](https://travis-ci.com/JoelForamitti/agentpy)
+[![Documentation Status](https://readthedocs.org/projects/agentpy/badge/?version=latest)](https://agentpy.readthedocs.io/en/latest/?badge=latest)
+[![codecov](https://codecov.io/gh/JoelForamitti/agentpy/branch/master/graph/badge.svg?token=NTW99HNGB0)](https://codecov.io/gh/JoelForamitti/agentpy)
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.03065/status.svg)](https://doi.org/10.21105/joss.03065)
+
+AgentPy is an open-source library for the development and analysis of agent-based models in Python. 
+The framework integrates the tasks of model design, interactive simulations, numerical experiments, 
+and data analysis within a single environment. The package is optimized for interactive computing 
+with [IPython](http://ipython.org/), [IPySimulate](https://github.com/JoelForamitti/ipysimulate), and [Jupyter](https://jupyter.org/). 
+
+Please cite this software as follows:
+
+    Foramitti, J., (2021). AgentPy: A package for agent-based modeling in Python. 
+    Journal of Open Source Software, 6(62), 3065, https://doi.org/10.21105/joss.03065
+
+**Installation:** `pip install agentpy`
+
+**Documentation:** https://agentpy.readthedocs.io
+
+**JOSS publication:** https://doi.org/10.21105/joss.03065
+
+**Discussion forum:** https://github.com/JoelForamitti/agentpy/discussions
+
+**Tutorials and examples:** https://agentpy.readthedocs.io/en/latest/model_library.html
+
+**Comparison with other frameworks**: https://agentpy.readthedocs.io/en/latest/comparison.html
+
