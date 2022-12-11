@@ -1,6 +1,6 @@
 import agentpy as ap
 
-class MyModel(ap.Model):
+class MyAgent(ap.Agent):
     def __init__(self):
         pass
 

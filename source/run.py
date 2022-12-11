@@ -1,5 +1,6 @@
 from model_params import parameters
 from model import MyModel
+from agents import MyAgent
 import agentpy as ap
 
 def running_model(parameters: dict, model):
