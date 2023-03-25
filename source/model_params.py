@@ -1,7 +1,7 @@
 parameters={
     'seed':40,
     'N':25, # num of agents & num of assets
-    'steps':10000, # num of steps/iterations by the model
+    'steps':100, # num of steps/iterations by the model
     'average_dividend':10, # \bar{d}
     'autoregressive_parameter':0.95, # in the paper rho
     'error_variance':0.0743,
