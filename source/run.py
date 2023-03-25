@@ -1,6 +1,6 @@
 from model_params import parameters
 from model import ArtificialStockMarket as ASM
-from agents import MyAgent
+from agents import MarketStatistician as MS
 import agentpy as ap
 
 def running_experiment(params: dict=parameters, model: ap.Model=ASM) -> ap.DataDict:
@@ -22,3 +22,4 @@ if __name__ == '__main__':
     #print(experiment_results['info'])
     model_results = running_model()
     print(model_results['info'])
+    #print(model_results['variables']['ArtificialStockMarket'])
