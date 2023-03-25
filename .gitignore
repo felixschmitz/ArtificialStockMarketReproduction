@@ -1,4 +1,15 @@
+# Mac attributes
 .DS_Store
+
+# Python temp
 __pycache__/
 __init__.py
+
+# Jupyter notebooks
 .ipynb
+
+# VScode
+.vscode/
+
+# TODO file
+TODO.txt

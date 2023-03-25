@@ -1,7 +1,10 @@
 from model_params import parameters
 from model import ArtificialStockMarket as ASM
 from agents import MarketStatistician as MS
+from viz_helper import price_lineplot
+
 import agentpy as ap
+import matplotlib.pyplot as plt
 
 def running_experiment(params: dict=parameters, model: ap.Model=ASM) -> ap.DataDict:
     exp_params = params
@@ -21,5 +24,9 @@ if __name__ == '__main__':
     #experiment_results = running_experiment()
     #print(experiment_results['info'])
     model_results = running_model()
-    print(model_results['info'])
+    #print(model_results['info'])
     #print(model_results['variables']['ArtificialStockMarket'])
+    data = model_results['variables']['ArtificialStockMarket'][['hreePrice', 'marketPrice']]
+    fig = price_lineplot(data)
+    plt.show()
+
