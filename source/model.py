@@ -13,30 +13,33 @@ class ArtificialStockMarket(ap.Model):
 
     def setup(self: ap.Model):
         self.dividend = self.p.averageDividend
-        self.currentPrice = 100
+        self.price = 100
+        self.varPriceDividend = 4.0
+        self.document()
+        self.agents = ap.AgentList(self, self.p.N, MS)
+
         # self.hreeSlope, self.hreeIntercept, self.hreeVariance = self.hree_values()
         # self.hreePrice = self.hree_price()
-        self.agents = ap.AgentList(self, self.p.N, MS)
-        self.varPriceDividend = 4.0
 
     def step(self: ap.Model):
         self.dividend = self.dividend_process()
+        self.agents.step()
 
-        """print(self.agents.U(10))
-        
+        """
         self.hreePrice = self.hree_price()
-        self.marketPrice = self.market_clearing_price()"""
+        self.marketPrice = self.market_clearing_price()
+        """
         self.document()
 
     def document(self: ap.Model):
         self.record(
             [
                 "dividend",
-                "currentPrice",
+                "price",
             ]
         )
         self.varPriceDividend = np.var(
-            np.array(self.log.dividend) + np.array(self.log.currentPrice)
+            np.array(self.log.get("dividend") + np.array(self.log.get("price")))
         )
         self.record(["varPriceDividend"])
 
