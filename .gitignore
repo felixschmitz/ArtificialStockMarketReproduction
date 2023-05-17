@@ -6,7 +6,8 @@ __pycache__/
 __init__.py
 
 # Jupyter notebooks
-.ipynb
+*.ipynb
+misc/
 
 # VScode
 .vscode/
