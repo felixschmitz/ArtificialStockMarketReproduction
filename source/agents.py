@@ -4,15 +4,16 @@ import numpy as np
 
 class MarketStatistician(ap.Agent):
     def setup(self):
+        self.rules = self.createRules()
         self.currCash = self.model.p.initialCash
         self.prevCash = self.model.p.initialCash
         self.stocksOwned = 1
         self.optimalStockOwned = 1
         self.demand = self.optimalStockOwned - self.stocksOwned
-        self.wealth = self.wealthCalc()
+        self.wealth = self.currCash
         self.expectedWealth = self.budgetConstraint()
-        self.utility = self.U(wealthExpect=self.expectedWealth)
-        self.rules = self.createRules()
+        self.utility = self.utilityFunciton()
+
         """if self.p.mode == 1:
             self.slope, self.intercept, self.pdVariance = (
                 self.model.hreeSlope,
@@ -44,27 +45,38 @@ class MarketStatistician(ap.Agent):
 
     def step(self: ap.Agent):
         self.wealth = self.wealthCalc()
+        self.demand = self.optimalStockAmount() - self.stocksOwned
+        self.update()
+        self.document()
+
+    def document(self: ap.Agent):
+        self.record(["demand", "wealth", "utility"])
+
+    def update(self: ap.Agent):
+        self.utility = self.utilityFunciton()
+        self.wealth = self.cash * self.model.p.interestRate + self.wealthCalc()
 
     def wealthCalc(self: ap.Agent):
-        return self.prevCash - self.model.currentPrice * self.stocksOwned
+        return self.prevCash - self.model.price * self.stocksOwned
 
-    def U(self: ap.Agent, wealthExpect: int) -> float:
+    def utilityFunciton(self: ap.Agent) -> float:
         """Return the CARA utility of expected Wealth."""
-        return -np.exp(-self.p.dorra * wealthExpect)
+        return -np.exp(-self.p.dorra * self.budgetConstraint())
 
     def budgetConstraint(self: ap.Agent) -> float:
-        return self.stocksOwned * (futurePrice + futureDividend) + (
+        return self.optimalStockAmount() * (self.expectationFormation()) + (
             1 + self.model.p.interestRate
-        ) * (self.wealth - self.model.currentPrice * self.stocksOwned)
+        ) * (self.wealth - self.model.price * self.optimalStockAmount())
 
     def expectationFormation(self: ap.Agent):
-        # To Do
-        return  # expected price plus dividend
+        return self.rules.get(1).get("a") * (
+            self.model.price + self.model.dividend
+        ) + self.rules.get(1).get("b")
 
     def optimalStockAmount(self: ap.Agent):
         return (
             self.expectationFormation()
-            - self.model.currentPrice * (1 + self.model.p.interestRate)
+            - self.model.price * (1 + self.model.p.interestRate)
         ) / (self.p.dorra * self.model.varPriceDividend)
 
     def priceDerivative(self: ap.Agent):
