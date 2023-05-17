@@ -26,10 +26,9 @@ if __name__ == "__main__":
     # experiment_results = running_experiment()
     # print(experiment_results['info'])
     model_results = running_model()
-    # print(model_results['info'])
-    # print(model_results['variables']['ArtificialStockMarket'])
     data = model_results["variables"]["ArtificialStockMarket"][
         ["hreePrice", "marketPrice"]
     ]
+    # print(model_results)
     fig = price_lineplot(data)
     plt.show()
