@@ -4,7 +4,7 @@ parameters = {
     # 'dividendSequence': None, # for mode 2; diagnostics test with given dividend sequence
     # 'priceSeries': None, # for mode 2; diagnostics test with given price series
     "N": 1,  # num of agents & num of assets
-    "steps": 10000,  # num of steps/iterations by the model
+    "steps": 100,  # num of steps/iterations by the model
     "averageDividend": 10,  # \bar{d}
     "autoregressiveParam": 0.95,  # in the paper rho
     "errorVar": 0.0743,
@@ -14,6 +14,6 @@ parameters = {
     "initialPriceDividendVariance": 4.0,
     "M": 100,  # number of predictors per agent
     "forecastAdaptation": 1,  # binary with 0 for slow and 1 for fast
-    "initial_cash": 20000,  # initial cash of each agent in the bank (cf. Ehrentreich2008 p.94)
+    "initialCash": 20000,  # initial cash of each agent in the bank (cf. Ehrentreich2008 p.94)
     # 'trialsSpecialist':10, # trials per timestep for market clearing
 }
