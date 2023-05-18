@@ -16,4 +16,5 @@ parameters = {
     "forecastAdaptation": 1,  # binary with 0 for slow and 1 for fast
     "initialCash": 20000,  # initial cash of each agent in the bank (cf. Ehrentreich2008 p.94)
     # 'trialsSpecialist':10, # trials per timestep for market clearing
+    "specialistType": 1,  # 0: ration expectations, 1: slope, 2: fixed ETA; default: 1
 }
