@@ -12,6 +12,7 @@ class ArtificialStockMarket(ap.Model):
     """
 
     def setup(self: ap.Model):
+        """setup function initializing and declaring class specific variables"""
         self.dividend = self.p.averageDividend
         self.price = 100
         self.varPriceDividend = 4.0
@@ -22,6 +23,7 @@ class ArtificialStockMarket(ap.Model):
         # self.hreePrice = self.hree_price()
 
     def step(self: ap.Model):
+        """model centered timeline followed at each timestep"""
         self.dividend = self.dividend_process()
         self.agents.step()
 
@@ -32,20 +34,24 @@ class ArtificialStockMarket(ap.Model):
         self.document()
 
     def document(self: ap.Model):
+        """documenting relevant variables of the model"""
         self.record(
             [
                 "dividend",
                 "price",
             ]
         )
+        self.update()
+        self.record(["varPriceDividend"])
+
+    def update(self: ap.Model):
+        """updating central variables of the model"""
         self.varPriceDividend = np.var(
             np.array(self.log.get("dividend") + np.array(self.log.get("price")))
         )
-        self.record(["varPriceDividend"])
 
     def dividend_process(self: ap.Model) -> float:
-        """Returns dividend based on AR(1) process given average dividend,
-        autoregressive parameter, and error variance."""
+        """returning current dividend based on AR(1) process"""
         errorTerm = self.nprandom.normal(0, math.sqrt(self.p.errorVar))
         return (
             self.p.averageDividend

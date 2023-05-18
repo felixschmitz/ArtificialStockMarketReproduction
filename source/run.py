@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 
 
 def running_experiment(params: dict = parameters, model: ap.Model = ASM) -> ap.DataDict:
+    """running an agentpy experiment with extended params"""
     exp_params = params
     exp_params.update({"forecast_adaptation": ap.Values(0, 1)})
     exp_sample = ap.Sample(exp_params, randomize=False)
@@ -17,6 +18,7 @@ def running_experiment(params: dict = parameters, model: ap.Model = ASM) -> ap.D
 
 
 def running_model(params: dict = parameters, model: ap.Model = ASM) -> ap.DataDict:
+    """running the agentpy model with basic params"""
     m = model(params)
     results = m.run()
     return results
@@ -26,9 +28,9 @@ if __name__ == "__main__":
     # experiment_results = running_experiment()
     # print(experiment_results['info'])
     model_results = running_model()
-    data = model_results["variables"]["ArtificialStockMarket"][
-        ["hreePrice", "marketPrice"]
-    ]
-    # print(model_results)
+    # data = model_results["variables"]["ArtificialStockMarket"][["varPriceDividend"]]
+    # data = model_results["variables"]["ArtificialStockMarket"][["dividend"]]
+    data = model_results["variables"]["MarketStatistician"][["wealth"]]
+
     fig = price_lineplot(data)
     plt.show()
