@@ -25,7 +25,9 @@ class ArtificialStockMarket(ap.Model):
     def step(self: ap.Model):
         """model centered timeline followed at each timestep"""
         self.dividend = self.dividend_process()
+        self.worldState = self.worldInformation()
         self.agents.step()
+        # worldInformation or worldState needs to be calculated with each new offered price suggestion by the specialist
 
         """
         self.hreePrice = self.hree_price()
@@ -58,6 +60,25 @@ class ArtificialStockMarket(ap.Model):
             + self.p.autoregressiveParam * (self.dividend - self.p.averageDividend)
             + errorTerm
         )
+
+    def worldInformation(self: ap.Model) -> dict:
+        """returning the fundamental, technical, and constant state of the world"""
+        fundamentalValues = [0.25, 0.5, 0.75, 0.875, 1.0, 1.25]
+        technicalValues = [self.technicalMA(periods) for periods in [5, 10, 100, 500]]
+        constantConditions = {11: 1, 12: 0}
+
+        fundamentalConditions = {
+            idx: fundamental for idx, fundamental in zip(range(1, 7), fundamentalValues)
+        }
+        technicalConditions = {
+            idx: MA for idx, MA in zip(range(7, 11), technicalValues)
+        }
+
+        return fundamentalConditions | technicalConditions | constantConditions
+
+    def technicalMA(self: ap.Model, periodMA) -> float:
+        """returning the moving average for a certain period (input)"""
+        return np.average(self.log.get("price")[-periodMA:])
 
     def specialist(self: ap.Model):
         """If the specialist is not able to find a market clearing price in the first place,
