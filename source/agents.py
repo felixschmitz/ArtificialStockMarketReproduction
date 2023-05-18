@@ -25,9 +25,9 @@ class MarketStatistician(ap.Agent):
     def createRules(self: ap.Agent) -> dict:
         """creating dict of predictive bitstring rules with their respective predictors and observatory meassures"""
         d = {}
-        constantCondition = {11: 1, 12: 0}
+        constantConditions = {11: 1, 12: 0}
         for i in range(1, self.model.p.M + 1):
-            variableCondition = {
+            variableConditions = {
                 i: (1 if j < 10 else 0 if 10 <= j < 20 else None)
                 for i, j in enumerate(
                     self.model.nprandom.integers(0, 100, 10).tolist(), 1
@@ -35,7 +35,7 @@ class MarketStatistician(ap.Agent):
             }
 
             d[i] = {
-                "condition": variableCondition | constantCondition,
+                "condition": variableConditions | constantConditions,
                 "activationIndicator": 0,
                 "activationCount": 0,
                 "a": self.model.nprandom.uniform(0.7, 1.2),
@@ -59,9 +59,9 @@ class MarketStatistician(ap.Agent):
     def update(self: ap.Agent):
         """updating central variables of agents"""
         self.utility = self.utilityFunction()
-        self.wealth = self.cash * self.model.p.interestRate + self.wealthCalc()
+        self.wealth = self.currCash * self.model.p.interestRate + self.wealthCalc()
 
-    def wealthCalc(self: ap.Agent):
+    def wealthCalc(self: ap.Agent) -> float:
         """returning current wealth level"""
         return self.prevCash - self.model.price * self.stocksOwned
 
@@ -75,20 +75,20 @@ class MarketStatistician(ap.Agent):
             1 + self.model.p.interestRate
         ) * (self.wealth - self.model.price * self.optimalStockAmount())
 
-    def expectationFormation(self: ap.Agent):
+    def expectationFormation(self: ap.Agent) -> float:
         """returning combined expected price plus dividend based on activated rule"""
         return self.rules.get(1).get("a") * (
             self.model.price + self.model.dividend
         ) + self.rules.get(1).get("b")
 
-    def optimalStockAmount(self: ap.Agent):
+    def optimalStockAmount(self: ap.Agent) -> float:
         """returning the current optimal amount of stocks to be held"""
         return (
             self.expectationFormation()
             - self.model.price * (1 + self.model.p.interestRate)
         ) / (self.p.dorra * self.model.varPriceDividend)
 
-    def priceDerivative(self: ap.Agent):
+    def priceDerivative(self: ap.Agent) -> float:
         """returning the partial derivative of the optimal demand with respect to the price"""
         return (
             self.a * (1 + self.model.dividend) + self.b - 1 - self.model.p.interestRate
