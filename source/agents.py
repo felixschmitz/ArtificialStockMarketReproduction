@@ -5,15 +5,14 @@ import numpy as np
 class MarketStatistician(ap.Agent):
     def setup(self):
         """setup function initializing and declaring class specific variables"""
-        self.rules = self.createRules()
-        self.currCash = self.model.p.initialCash
-        self.prevCash = self.model.p.initialCash
-        self.stocksOwned = 1
+        self.cash = self.model.p.initialCash
+        self.rules = self.initializeRules(numRules=self.model.p.M)
+        self.currentRule, self.activeRules = self.activateRules()
+        self.forecast = self.expectationFormation()
+        self.position = 1
         self.optimalStockOwned = 1
-        self.demand = self.optimalStockOwned - self.stocksOwned
-        self.wealth = self.currCash
-        self.expectedWealth = self.budgetConstraint()
-        self.utility = self.utilityFunction()
+        self.demand = self.optimalStockOwned - self.position
+        self.slope = 0
 
         """if self.p.mode == 1:
             self.slope, self.intercept, self.pdVariance = (
