@@ -47,36 +47,72 @@ class MarketStatistician(ap.Agent):
         self.record(["demand"])
         self.record("pdExpectation", self.expectationFormation())
 
+    def createRule(self: ap.Agent, geneticAlgo: bool = False) -> dict:
+        """creating dict of predictive bitstring rule with respective predictor and observatory meassures"""
         constantConditions = {11: 1, 12: 0}
-        for i in range(1, self.model.p.M + 1):
+        if geneticAlgo:
+            pass
+        else:
             variableConditions = {
                 i: (1 if j < 10 else 0 if 10 <= j < 20 else None)
                 for i, j in enumerate(
                     self.model.nprandom.integers(0, 100, 10).tolist(), 1
                 )
             }
-
-            d[i] = {
+            return {
                 "condition": variableConditions | constantConditions,
                 "activationIndicator": 0,
                 "activationCount": 0,
                 "a": self.model.nprandom.uniform(0.7, 1.2),
                 "b": self.model.nprandom.uniform(-10, 19.002),
-                "fitness": self.p.M,
-                "accuracy": 4.0,
+                "fitness": self.model.p.M,
+                "accuracy": self.model.p.initialPredictorVariance,
+                "errorVariance": self.model.p.initialPredictorVariance,
             }
+
+    def initializeRules(self: ap.Agent, numRules: int) -> dict:
+        """initializing dict of rules with respective predictive bitstring rules"""
+        d = {}
+        for i in range(1, numRules + 1):
+            d[i] = self.createRule()
         return d
 
-    def step(self: ap.Agent):
-        """agent centered timeline followed at each timestep"""
-        self.wealth = self.wealthCalc()
-        self.demand = self.optimalStockAmount() - self.stocksOwned
-        self.update()
-        self.document()
+    def activateRules(self: ap.Agent) -> tuple[int, list]:
+        """activating the rules matching the models worldState and returning a list reflecting the keys"""
+        activeRuleKeys = []
+        currentRuleKey = 0
+        for ruleID in self.rules:
+            for ruleBitID, ruleBit in enumerate(
+                self.rules[ruleID]["condition"].values(), 1
+            ):
+                if ruleBit is None:
+                    pass
+                elif ruleBit != self.model.worldState[ruleBitID]:
+                    break
+                if ruleBitID == 11:
+                    self.rules[ruleID]["activationIndicator"] = 1
+                    self.rules[ruleID]["activationCount"] += 1
+                    activeRuleKeys.append(ruleID)
+                    if (currentRuleKey == 0) or (
+                        self.rules[currentRuleKey]["accuracy"]
+                        > self.rules[ruleID]["accuracy"]
+                    ):
+                        currentRuleKey = ruleID
 
-    def document(self: ap.Agent):
-        """documenting relevant variables of agents"""
-        self.record(["demand", "wealth", "utility"])
+        if currentRuleKey == 0:
+            activeRuleKeys = [0]
+            weights = [rule["fitness"] for rule in self.rules.values()]
+            self.rules[0] = {
+                "a": np.average(
+                    [rule["a"] for rule in self.rules.values()], weights=weights
+                ),
+                "b": np.average(
+                    [rule["b"] for rule in self.rules.values()], weights=weights
+                ),
+                "fitness": self.model.p.M,
+                "accuracy": self.model.p.initialPredictorVariance,
+            }
+        return currentRuleKey, activeRuleKeys
 
     def update(self: ap.Agent):
         """updating central variables of agents"""
