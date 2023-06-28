@@ -15,10 +15,15 @@ class ArtificialStockMarket(ap.Model):
 
     def setup(self: ap.Model):
         """setup function initializing and declaring class specific variables"""
+        if self.p.forecastAdaptation:
+            self.theta = 1 / 75
+        else:
+            self.theta = 1 / 150
         self.dividend = self.p.averageDividend
         self.price = 100
-        self.varPriceDividend = 4.0
         self.document()
+        self.varPriceDividend = 1
+        self.worldState = self.worldInformation()
         self.agents = ap.AgentList(self, self.p.N, MS)
 
         # self.hreeSlope, self.hreeIntercept, self.hreeVariance = self.hree_values()
@@ -26,15 +31,16 @@ class ArtificialStockMarket(ap.Model):
 
     def step(self: ap.Model):
         """model centered timeline followed at each timestep"""
+        if self.t <= 1:
+            self.varPriceDividend = 1
         self.dividend = self.dividend_process()
-        self.worldState = self.worldInformation()
-        self.agents.step()
-        # worldInformation or worldState needs to be calculated with each new offered price suggestion by the specialist
-
+        self.specialist()
         """
         self.hreePrice = self.hree_price()
         self.marketPrice = self.market_clearing_price()
         """
+        self.agents.update()
+        self.agents.document()
         self.document()
 
     def document(self: ap.Model):
@@ -45,6 +51,7 @@ class ArtificialStockMarket(ap.Model):
                 "price",
             ]
         )
+        self.record("pd", self.price + self.dividend)
         self.update()
         self.record(["varPriceDividend"])
 
