@@ -114,30 +114,66 @@ class MarketStatistician(ap.Agent):
             }
         return currentRuleKey, activeRuleKeys
 
-    def update(self: ap.Agent):
-        """updating central variables of agents"""
-        self.utility = self.utilityFunction()
-        self.wealth = self.currCash * self.model.p.interestRate + self.wealthCalc()
+    def settingDemandAndSlope(self: ap.Agent):
+        """setting the demand and the slope of the demand function"""
+        if self.forecast >= 0:
+            self.demand = -(
+                (
+                    (self.model.price * (1 + self.model.dividend) - self.forecast)
+                    / (
+                        self.model.p.dorra
+                        * self.rules.get(self.currentRule).get("accuracy")
+                    )
+                )
+                + self.position
+            )
+            self.slope = (
+                self.rules.get(self.currentRule).get("a") - (1 + self.model.dividend)
+            ) / (self.model.p.dorra * self.rules.get(self.currentRule).get("accuracy"))
+        else:
+            self.forecast = 0
+            self.demand = -(self.model.price * (1 + self.model.dividend)) / (
+                (self.model.p.dorra * self.rules.get(self.currentRule).get("accuracy"))
+                + self.position
+            )
+            self.slope = -(1 + self.model.dividend) / (
+                self.model.p.dorra * self.rules.get(self.currentRule).get("accuracy")
+            )
 
-    def wealthCalc(self: ap.Agent) -> float:
-        """returning current wealth level"""
-        return self.prevCash - self.model.price * self.stocksOwned
+        # restricting the demand within the range of the maximum bid
+        if self.demand > self.model.p.maxBid:
+            self.demand = self.model.p.maxBid
+            self.slope = 0
+        elif self.demand < -self.model.p.maxBid:
+            self.demand = -self.model.p.maxBid
+            self.slope = 0
 
-    def utilityFunction(self: ap.Agent) -> float:
-        """returning the CARA utility of expected wealth."""
-        return -np.exp(-self.p.dorra * self.budgetConstraint())
+    def getDemandAndSlope(self: ap.Agent) -> tuple[float, float]:
+        """returning the demand and the slope of the demand function"""
+        return self.demand, self.slope
 
-    def budgetConstraint(self: ap.Agent) -> float:
-        """returning the expected wealth"""
-        return self.optimalStockAmount() * (self.expectationFormation()) + (
-            1 + self.model.p.interestRate
-        ) * (self.wealth - self.model.price * self.optimalStockAmount())
+    def constrainDemand(self: ap.Agent):
+        """constraining the demand to the maximum bid and the minimum holding"""
+        if self.demand > 0:
+            if self.demand * self.model.price > self.cash - self.model.p.minCash:
+                if self.cash - self.model.p.minCash > 0:
+                    self.demand = (self.cash - self.model.p.minCash) / self.model.price
+                    self.slope = -self.demand / self.model.price
+                else:
+                    self.demand = 0
+                    self.slope = 0
+
+        elif (self.demand < 0) & (
+            self.demand + self.position < self.model.p.minHolding
+        ):
+            self.demand = self.model.p.minHolding - self.position
+            self.slope = 0
 
     def expectationFormation(self: ap.Agent) -> float:
         """returning combined expected price plus dividend based on activated rule"""
-        return self.rules.get(1).get("a") * (
+        return self.rules.get(self.currentRule).get("a") * (
             self.model.price + self.model.dividend
-        ) + self.rules.get(1).get("b")
+        ) + self.rules.get(self.currentRule).get("b")
 
     def optimalStockAmount(self: ap.Agent) -> float:
         """returning the current optimal amount of stocks to be held"""
