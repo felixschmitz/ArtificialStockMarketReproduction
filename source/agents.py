@@ -191,7 +191,7 @@ class MarketStatistician(ap.Agent):
     def geneticAlgorithmPreparation(self: ap.Agent, ruleID: str):
         """preparing the rules for the genetic algorithm by updating accuracy and fitness"""
         self.rules[ruleID]["accuracy"] = self.rules[ruleID]["errorVariance"]
-        s = sum(value == None for value in self.rules[ruleID]["condition"].values())
+        s = sum(value != None for value in self.rules[ruleID]["condition"].values())
         self.rules[ruleID]["fitness"] = (
             self.model.p.M - self.rules[ruleID]["accuracy"] - (self.model.p.C * s)
         )
