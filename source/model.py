@@ -77,10 +77,11 @@ class ArtificialStockMarket(ap.Model):
         constantConditions = {11: 1, 12: 0}
 
         fundamentalConditions = {
-            idx: fundamental for idx, fundamental in zip(range(1, 7), fundamentalValues)
+            idx: (self.price * self.p.interestRate / self.dividend) > fundamental
+            for idx, fundamental in zip(range(1, 7), fundamentalValues)
         }
         technicalConditions = {
-            idx: MA for idx, MA in zip(range(7, 11), technicalValues)
+            idx: self.price > MA for idx, MA in zip(range(7, 11), technicalValues)
         }
 
         return fundamentalConditions | technicalConditions | constantConditions
