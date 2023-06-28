@@ -14,16 +14,39 @@ class MarketStatistician(ap.Agent):
         self.demand = self.optimalStockOwned - self.position
         self.slope = 0
 
-        """if self.p.mode == 1:
-            self.slope, self.intercept, self.pdVariance = (
-                self.model.hreeSlope,
-                self.model.hreeIntercept,
-                self.model.hreeVariance,
-            )"""
+    def step(self: ap.Agent):
+        """agent centered timeline followed at each timestep"""
+        self.currentRule, self.activeRules = self.activateRules()
+        self.forecast = self.expectationFormation()
+        self.settingDemandAndSlope()
+        self.constrainDemand()
 
-    def createRules(self: ap.Agent) -> dict:
-        """creating dict of predictive bitstring rules with their respective predictors and observatory meassures"""
-        d = {}
+    def update(self: ap.Agent):
+        """updating central variables of agents"""
+        self.errorVarianceUpdate()
+        # self.utility = self.utilityFunction()
+
+        gArandint = self.model.nprandom.integers(1000)
+        gACondition = ((self.model.p.forecastAdaptation) & (gArandint < 4)) | (
+            (not self.model.p.forecastAdaptation) & (gArandint == 0)
+        )
+        # fast: forecastAdaptataion == True, gArandint < 4, theta = 1/75, p(crossover) = 0.1
+        # slow: forecastAdaptation == False, gArandint == 0, theta = 1/150, p(crossover) = 0.3
+        if gACondition:
+            self.geneticAlgorithm()
+
+        # self.wealth = self.wealthCalc()
+        """self.currCash = (
+            self.currCash * (1 + self.model.p.interestRate)
+            + self.model.dividend * self.position
+        )"""
+
+    def document(self: ap.Agent):
+        """documenting relevant variables of agents"""
+        # self.record(["demand", "wealth", "utility"])
+        self.record(["demand"])
+        self.record("pdExpectation", self.expectationFormation())
+
         constantConditions = {11: 1, 12: 0}
         for i in range(1, self.model.p.M + 1):
             variableConditions = {
