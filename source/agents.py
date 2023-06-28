@@ -175,25 +175,38 @@ class MarketStatistician(ap.Agent):
             self.model.price + self.model.dividend
         ) + self.rules.get(self.currentRule).get("b")
 
-    def optimalStockAmount(self: ap.Agent) -> float:
-        """returning the current optimal amount of stocks to be held"""
-        return (
-            self.expectationFormation()
-            - self.model.price * (1 + self.model.p.interestRate)
-        ) / (self.p.dorra * self.model.varPriceDividend)
+    def errorVarianceUpdate(self: ap.Agent) -> None:
+        """updating the errorVariance of the predictors"""
+        for ruleID in self.activeRules:
+            if ruleID != 0:
+                self.rules[ruleID]["errorVariance"] = (
+                    1 - self.model.theta
+                ) * self.rules[ruleID]["errorVariance"] + self.model.theta * math.pow(
+                    self.model.price + self.model.dividend - self.forecast, 2
+                )
+                self.rules[ruleID]["activationIndicator"] = 0
 
-    def priceDerivative(self: ap.Agent) -> float:
-        """returning the partial derivative of the optimal demand with respect to the price"""
-        return (
-            self.a * (1 + self.model.dividend) + self.b - 1 - self.model.p.interestRate
-        ) / (self.p.dorra * self.model.varPriceDividend)
+    def geneticAlgorithmPreparation(self: ap.Agent, ruleID: str):
+        """preparing the rules for the genetic algorithm by updating accuracy and fitness"""
+        self.rules[ruleID]["accuracy"] = self.rules[ruleID]["errorVariance"]
+        s = sum(value == None for value in self.rules[ruleID]["condition"].values())
+        self.rules[ruleID]["fitness"] = (
+            self.model.p.M - self.rules[ruleID]["accuracy"] - (self.model.p.C * s)
+        )
 
-    """def price_predictionHREE(self: ap.Agent) -> float:
-        if self.p.mode == 1:
-            price = self.model.market_clearing_price(
-                self.model.hreeSlope, self.model.hreeIntercept, self.model.hreeVariance
-            )
-            return (
-                self.slope * (price + self.model.dividend) + self.intercept,
-                self.pdvariance,
-            )"""
+    def geneticAlgorithm(self: ap.Agent):
+        """performing the genetic algorithm"""
+        print(f"\nactivated at timestep: {self.model.t} for agent: {self.id}")
+        rulesToBeReplaced = list(
+            dict(
+                sorted(self.rules.items(), key=lambda item: item[1]["errorVariance"])
+            ).keys()
+        )[-20:]
+        parentRules = set(self.rules)
+        print(
+            f"rules to be replaced: {rulesToBeReplaced}, with accuracies: {[self.rules[i]['errorVariance'] for i in rulesToBeReplaced]}"
+        )
+        for ruleID in self.rules.keys():
+            if ruleID != 0:
+                self.geneticAlgorithmPreparation(ruleID=ruleID)
+        # print([self.rules[i]["accuracy"] for i in self.activeRules])
