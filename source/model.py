@@ -96,7 +96,36 @@ class ArtificialStockMarket(ap.Model):
         effective demands and partial derivatives accordingly. If complete market clearing is not reached
         within a specified number of trials, one side of the market will be rationed.
         """
-        pass
+        i = 0
+        done = False
+        eta = 0.0005
+        while (i < self.p.trialsSpecialist) and not done:
+            i += 1
+            self.worldState = self.worldInformation()
+            self.agents.step()
+            # print(self.agents.getDemandAndSlope())
+            self.demandTotal, self.slopeTotal = tuple(
+                (sum(x) for x in zip(*self.agents.getDemandAndSlope()))
+            )
+            if (self.demandTotal <= self.p.minExcess) & (
+                self.demandTotal >= -self.p.minExcess
+            ):  # self.demandTotal == self.p.N:
+                done = True
+                # if self.demandTotal == 0:
+                pass
+            if self.slopeTotal != 0:
+                self.price -= self.demandTotal / self.slopeTotal
+            else:
+                self.price = self.price * ((1 + eta) * self.demandTotal)
+            self.worldState = self.worldInformation()
+            self.agents.update()
+            if self.price < self.p.minPrice:
+                self.price = self.p.minPrice
+            elif self.price > self.p.maxPrice:
+                self.price = self.p.maxPrice
+            """print(
+                f"\nTimestamp: {self.t}, Trial: {i}\nPrice: {self.price}\nDemand: {self.demandTotal}"
+            )"""
 
     """def hree_values(
         self: ap.Model,
