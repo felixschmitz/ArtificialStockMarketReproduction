@@ -4,6 +4,8 @@ import agentpy as ap
 import numpy as np
 import math
 
+np.seterr("raise")
+
 
 class ArtificialStockMarket(ap.Model):
     """

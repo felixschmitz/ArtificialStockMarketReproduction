@@ -1,5 +1,7 @@
 import agentpy as ap
 import numpy as np
+import scipy
+import math
 
 
 class MarketStatistician(ap.Agent):

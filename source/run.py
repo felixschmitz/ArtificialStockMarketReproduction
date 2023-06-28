@@ -1,7 +1,7 @@
 from model_params import parameters
 from model import ArtificialStockMarket as ASM
 from agents import MarketStatistician as MS
-from viz_helper import price_lineplot
+from viz_helper import lineplot, errLineplot
 
 import agentpy as ap
 import matplotlib.pyplot as plt
