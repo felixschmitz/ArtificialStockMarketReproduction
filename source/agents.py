@@ -15,6 +15,7 @@ class MarketStatistician(ap.Agent):
         self.optimalStockOwned = 1
         self.demand = self.optimalStockOwned - self.position
         self.slope = 0
+        self.pCrossOver = 0.1 if self.model.p.forecastAdaptation else 0.3
 
     def step(self: ap.Agent):
         """agent centered timeline followed at each timestep"""
@@ -28,12 +29,12 @@ class MarketStatistician(ap.Agent):
         self.errorVarianceUpdate()
         # self.utility = self.utilityFunction()
 
-        gArandint = self.model.nprandom.integers(1000)
-        gACondition = ((self.model.p.forecastAdaptation) & (gArandint < 4)) | (
-            (not self.model.p.forecastAdaptation) & (gArandint == 0)
+        gARandInt = self.model.nprandom.integers(1000)
+        gACondition = ((self.model.p.forecastAdaptation) & (gARandInt < 4)) | (
+            (not self.model.p.forecastAdaptation) & (gARandInt == 0)
         )
-        # fast: forecastAdaptataion == True, gArandint < 4, theta = 1/75, p(crossover) = 0.1
-        # slow: forecastAdaptation == False, gArandint == 0, theta = 1/150, p(crossover) = 0.3
+        # fast: forecastAdaptataion == True, gARandInt < 4, theta = 1/75, p(crossover) = 0.1
+        # slow: forecastAdaptation == False, gARandInt == 0, theta = 1/150, p(crossover) = 0.3
         if gACondition:
             self.geneticAlgorithm()
 
@@ -49,28 +50,23 @@ class MarketStatistician(ap.Agent):
         self.record(["demand"])
         self.record("pdExpectation", self.expectationFormation())
 
-    def createRule(self: ap.Agent, geneticAlgo: bool = False) -> dict:
+    def createRule(self: ap.Agent) -> dict:
         """creating dict of predictive bitstring rule with respective predictor and observatory meassures"""
         constantConditions = {11: 1, 12: 0}
-        if geneticAlgo:
-            pass
-        else:
-            variableConditions = {
-                i: (1 if j < 10 else 0 if 10 <= j < 20 else None)
-                for i, j in enumerate(
-                    self.model.nprandom.integers(0, 100, 10).tolist(), 1
-                )
-            }
-            return {
-                "condition": variableConditions | constantConditions,
-                "activationIndicator": 0,
-                "activationCount": 0,
-                "a": self.model.nprandom.uniform(0.7, 1.2),
-                "b": self.model.nprandom.uniform(-10, 19.002),
-                "fitness": self.model.p.M,
-                "accuracy": self.model.p.initialPredictorVariance,
-                "errorVariance": self.model.p.initialPredictorVariance,
-            }
+        variableConditions = {
+            i: (1 if j < 10 else 0 if 10 <= j < 20 else None)
+            for i, j in enumerate(self.model.nprandom.integers(0, 100, 10).tolist(), 1)
+        }
+        return {
+            "condition": variableConditions | constantConditions,
+            "activationIndicator": 0,
+            "activationCount": 0,
+            "a": self.model.nprandom.uniform(0.7, 1.2),
+            "b": self.model.nprandom.uniform(-10, 19.002),
+            "fitness": self.model.p.M,
+            "accuracy": self.model.p.initialPredictorVariance,
+            "errorVariance": self.model.p.initialPredictorVariance,
+        }
 
     def crossoverRule(
         self: ap.Agent, ruleID: int, parentRuleID1: int, parentRuleID2: int
@@ -160,8 +156,8 @@ class MarketStatistician(ap.Agent):
                     self.rules[ruleID]["activationCount"] += 1
                     activeRuleKeys.append(ruleID)
                     if (currentRuleKey == 0) or (
-                        self.rules[currentRuleKey]["accuracy"]
-                        > self.rules[ruleID]["accuracy"]
+                        self.rules[currentRuleKey]["errorVariance"]
+                        > self.rules[ruleID]["errorVariance"]
                     ):
                         currentRuleKey = ruleID
 
@@ -257,7 +253,10 @@ class MarketStatistician(ap.Agent):
         self.rules[ruleID]["accuracy"] = self.rules[ruleID]["errorVariance"]
         s = sum(value != None for value in self.rules[ruleID]["condition"].values())
         self.rules[ruleID]["fitness"] = (
-            self.model.p.M - self.rules[ruleID]["accuracy"] - (self.model.p.C * s)
+            # self.model.p.M - self.rules[ruleID]["accuracy"] - (self.model.p.C * s)
+            1e9
+            - self.rules[ruleID]["accuracy"]
+            - (self.model.p.C * s)
         )
 
     def geneticAlgorithm(self: ap.Agent):
