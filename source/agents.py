@@ -72,6 +72,70 @@ class MarketStatistician(ap.Agent):
                 "errorVariance": self.model.p.initialPredictorVariance,
             }
 
+    def crossoverRule(
+        self: ap.Agent, ruleID: int, parentRuleID1: int, parentRuleID2: int
+    ) -> dict:
+        """crossover of two parent rules"""
+        # crossover on bitstring level
+        constantConditions = {11: 1, 12: 0}
+        variableConditions = {
+            idx + 1: (self.rules[parentID]["condition"][idx + 1])
+            for idx, parentID in enumerate(
+                self.model.nprandom.choice([parentRuleID1, parentRuleID2], 10).tolist(),
+            )
+        }
+        # setting new bitstring after uniform crossover
+        self.rules[ruleID]["condition"] = variableConditions | constantConditions
+
+        # crossover on predictive vector level
+        # 0: crossover component-wise,
+        # 1: linear combination,
+        # 2: complete selection of one predictive vector
+        crossoverProcedure = self.model.nprandom.integers(3)
+        if crossoverProcedure == 0:
+            self.rules[ruleID]["a"], self.rules[ruleID]["b"] = [
+                self.rules[parentID][("a" if not idx else "b")]
+                for idx, parentID in enumerate(
+                    self.model.nprandom.choice(
+                        [parentRuleID1, parentRuleID2], 2
+                    ).tolist()
+                )
+            ]
+
+        elif crossoverProcedure == 1:
+            # linear combination of parent predictive vectors
+            (p1A, p1B), (p2A, p2B) = [
+                (a, 1 - a) for a in self.model.nprandom.uniform(0, 1, 2)
+            ]
+            self.rules[ruleID]["a"], self.rules[ruleID]["b"] = (
+                self.rules[parentRuleID1]["a"] * p1A
+                + self.rules[parentRuleID2]["a"] * p2A,
+                self.rules[parentRuleID1]["b"] * p1B
+                + self.rules[parentRuleID2]["b"] * p2B,
+            )
+
+        elif crossoverProcedure == 2:
+            # complete selection of one of the parents' predictive vector
+            parentID = self.model.nprandom.choice([parentRuleID1, parentRuleID2])
+            self.rules[ruleID]["a"], self.rules[ruleID]["b"] = (
+                self.rules[parentID]["a"],
+                self.rules[parentID]["b"],
+            )
+
+    def mutatingBit(
+        self: ap.Agent, predictiveBit: bool, bit: bool | None | float
+    ) -> bool | None | float:
+        """mutating a single bit of a predictive vector or bitstring"""
+        if predictiveBit:
+            # mutating a predictive vector
+            # is this ok or do I need to make sure they stay in the proper ranges?
+            return bit * self.model.nprandom.uniform(0.8, 1.2)
+        else:
+            # mutating a bitstring
+            s = {True, False, None}
+            s.remove(bit)
+            return self.model.nprandom.choice(list(s))
+
     def initializeRules(self: ap.Agent, numRules: int) -> dict:
         """initializing dict of rules with respective predictive bitstring rules"""
         d = {}
@@ -198,17 +262,55 @@ class MarketStatistician(ap.Agent):
 
     def geneticAlgorithm(self: ap.Agent):
         """performing the genetic algorithm"""
-        print(f"\nactivated at timestep: {self.model.t} for agent: {self.id}")
-        rulesToBeReplaced = list(
-            dict(
-                sorted(self.rules.items(), key=lambda item: item[1]["errorVariance"])
-            ).keys()
-        )[-20:]
-        parentRules = set(self.rules)
-        print(
-            f"rules to be replaced: {rulesToBeReplaced}, with accuracies: {[self.rules[i]['errorVariance'] for i in rulesToBeReplaced]}"
+        # print(f"\nactivated at timestep: {self.model.t} for agent: {self.id}")
+        rulesToBeReplaced = set(
+            list(
+                dict(
+                    sorted(
+                        self.rules.items(), key=lambda item: item[1]["errorVariance"]
+                    )
+                ).keys()
+            )[-20:]
         )
+
+        parentRules = set(self.rules) - {0} - rulesToBeReplaced
+        # fitness values and normalized fitness values (used as probabilities) of the parent rules
+        fitnessValues = [self.rules[i]["fitness"] for i in list(parentRules)]
+        normalizedFitnessValues = [float(i) / sum(fitnessValues) for i in fitnessValues]
         for ruleID in self.rules.keys():
             if ruleID != 0:
                 self.geneticAlgorithmPreparation(ruleID=ruleID)
-        # print([self.rules[i]["accuracy"] for i in self.activeRules])
+            if ruleID in rulesToBeReplaced:
+                # initializing new rule
+                self.rules[ruleID] = self.createRule()
+
+                crossoverRandInt = self.model.nprandom.integers(100)
+                crossoverCondition = (
+                    (self.model.p.forecastAdaptation) & (crossoverRandInt < 30)
+                ) | ((not self.model.p.forecastAdaptation) & (crossoverRandInt < 10))
+                # crossover takes place with probability 0.3 in the fast adaptation case
+                # and 0.1 in the slow adaptation case
+                if crossoverCondition:
+                    # parents for crossover are chosen based on fitness
+                    p1, p2 = self.model.nprandom.choice(
+                        list(parentRules),
+                        2,
+                        p=normalizedFitnessValues,
+                    )
+                    # performing crossover
+                    self.crossoverRule(
+                        ruleID=ruleID, parentRuleID1=p1, parentRuleID2=p2
+                    )
+
+                # mutation takes place with probability 0.03 per bit
+                for predictor in ["a", "b"]:
+                    if self.model.nprandom.random() < 0.03:
+                        self.rules[ruleID][predictor] = self.mutatingBit(
+                            predictiveBit=True, bit=self.rules[ruleID][predictor]
+                        )
+                for key in range(1, 11):
+                    if self.model.nprandom.random() < 0.03:
+                        self.rules[ruleID]["condition"][key] = self.mutatingBit(
+                            predictiveBit=False,
+                            bit=self.rules[ruleID]["condition"][key],
+                        )
