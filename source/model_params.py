@@ -4,7 +4,7 @@ parameters = {
     # 'dividendSequence': None, # for mode 2; diagnostics test with given dividend sequence
     # 'priceSeries': None, # for mode 2; diagnostics test with given price series
     "N": 25,  # num of agents & num of assets
-    "steps": 50,  # num of steps/iterations by the model
+    "steps": 5e1,  # num of steps/iterations by the model
     "averageDividend": 10,  # \bar{d}
     "autoregressiveParam": 0.95,  # in the paper rho
     "errorVar": 0.0743,
