@@ -144,3 +144,10 @@ class ArtificialStockMarket(ap.Model):
             )
         ) / self.p.interestRate
         return f * self.dividend + g
+
+    def hreeForecastCalc(self: ap.Model) -> float:
+        """Returns homogeneous raional expactation equilibrium of next periods price"""
+        return (1 + self.p.interestRate) * self.price + (
+            (self.p.dorra * (2 + self.interestRate) * self.p.errorVar)
+            / (1 + self.p.interestRate - self.p.autoregressiveParam)
+        )
