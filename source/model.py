@@ -8,30 +8,27 @@ np.seterr("raise")
 
 
 class ArtificialStockMarket(ap.Model):
-    """
-    def __init__(self, parameters=None, _run_id=None, **kwargs):
-        super().__init__(parameters, _run_id, **kwargs)
-    """
-
     def setup(self: ap.Model):
         """setup function initializing and declaring class specific variables"""
-        if self.p.forecastAdaptation:
+        self.theta = 1 / 75 if self.p.forecastAdaptation else 1 / 150
+        """if self.p.forecastAdaptation:
             self.theta = 1 / 75
         else:
-            self.theta = 1 / 150
+            self.theta = 1 / 150"""
         self.dividend = self.p.averageDividend
         self.price = 100
-        self.hreeSlope, self.hreeIntercept, self.hreeVariance = self.hreeValues()
+        # self.hreeSlope, self.hreeIntercept, self.hreeVariance = self.hreeValues()
+        self.hreeSlope, self.hreeIntercept = self.hreeValues()
         self.hreePrice = self.hreePriceCalc()
         self.document()
-        self.varPriceDividend = 1
+        # self.varPriceDividend = 1
         self.worldState = self.worldInformation()
         self.agents = ap.AgentList(self, self.p.N, MS)
 
     def step(self: ap.Model):
         """model centered timeline followed at each timestep"""
-        if self.t <= 1:
-            self.varPriceDividend = 1
+        """if self.t <= 1:
+            self.varPriceDividend = 1"""
         self.dividend = self.dividend_process()
         self.agents.step()
         self.price = self.marketClearingPrice()
@@ -50,8 +47,8 @@ class ArtificialStockMarket(ap.Model):
             ]
         )
         self.record("pd", self.price + self.dividend)
-        self.update()
-        self.record(["varPriceDividend"])
+        # self.update()
+        # self.record(["varPriceDividend"])
 
     def update(self: ap.Model):
         """updating central variables of the model"""
@@ -128,7 +125,7 @@ class ArtificialStockMarket(ap.Model):
         return (
             self.nprandom.uniform(a_min, a_max),
             self.nprandom.uniform(b_min, b_max),
-            self.p.initialPredictorVariance,
+            # self.p.initialPredictorVariance,
         )
 
     def hreePriceCalc(self: ap.Model) -> float:
