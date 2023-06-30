@@ -21,6 +21,8 @@ class ArtificialStockMarket(ap.Model):
             self.theta = 1 / 150
         self.dividend = self.p.averageDividend
         self.price = 100
+        self.hreeSlope, self.hreeIntercept, self.hreeVariance = self.hreeValues()
+        self.hreePrice = self.hreePriceCalc()
         self.document()
         self.varPriceDividend = 1
         self.worldState = self.worldInformation()
@@ -34,11 +36,9 @@ class ArtificialStockMarket(ap.Model):
         if self.t <= 1:
             self.varPriceDividend = 1
         self.dividend = self.dividend_process()
-        self.specialist()
-        """
-        self.hreePrice = self.hree_price()
-        self.marketPrice = self.market_clearing_price()
-        """
+        self.agents.step()
+        self.price = self.marketClearingPrice()
+        self.hreePrice = self.hreePriceCalc()
         self.agents.update()
         self.agents.document()
         self.document()
@@ -49,6 +49,7 @@ class ArtificialStockMarket(ap.Model):
             [
                 "dividend",
                 "price",
+                "hreePrice",
             ]
         )
         self.record("pd", self.price + self.dividend)
@@ -127,22 +128,22 @@ class ArtificialStockMarket(ap.Model):
                 f"\nTimestamp: {self.t}, Trial: {i}\nPrice: {self.price}\nDemand: {self.demandTotal}"
             )"""
 
-    """def hree_values(
+    def hreeValues(
         self: ap.Model,
         a_min: float = 0.7,
         a_max: float = 1.2,
         b_min: float = -10,
         b_max: float = 19.002,
     ):
-        ""Returns homogeneous rational expectations equilibrium predictor values.""
+        """Returns homogeneous rational expectations equilibrium predictor values."""
         return (
             self.nprandom.uniform(a_min, a_max),
             self.nprandom.uniform(b_min, b_max),
-            self.p.initialPriceDividendVariance,
+            self.p.initialPredictorVariance,
         )
 
-    def hree_price(self: ap.Model) -> float:
-        ""Returns homogeneous rational expectation equilibrium price.""
+    def hreePriceCalc(self: ap.Model) -> float:
+        """Returns homogeneous rational expectation equilibrium price."""
         f = self.p.autoregressiveParam / (
             1 + self.p.interestRate - self.p.autoregressiveParam
         )
