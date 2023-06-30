@@ -28,9 +28,6 @@ class ArtificialStockMarket(ap.Model):
         self.worldState = self.worldInformation()
         self.agents = ap.AgentList(self, self.p.N, MS)
 
-        # self.hreeSlope, self.hreeIntercept, self.hreeVariance = self.hree_values()
-        # self.hreePrice = self.hree_price()
-
     def step(self: ap.Model):
         """model centered timeline followed at each timestep"""
         if self.t <= 1:
@@ -91,42 +88,34 @@ class ArtificialStockMarket(ap.Model):
         """returning the moving average for a certain period (input)"""
         return np.average(self.log.get("price")[-periodMA:])
 
-    def specialist(self: ap.Model):
-        """If the specialist is not able to find a market clearing price in the first place,
-        an iterative process is started in which new trial prices are announced and agents update their
-        effective demands and partial derivatives accordingly. If complete market clearing is not reached
-        within a specified number of trials, one side of the market will be rationed.
-        """
-        i = 0
-        done = False
-        eta = 0.0005
-        while (i < self.p.trialsSpecialist) and not done:
-            i += 1
-            self.worldState = self.worldInformation()
-            self.agents.step()
-            # print(self.agents.getDemandAndSlope())
-            self.demandTotal, self.slopeTotal = tuple(
-                (sum(x) for x in zip(*self.agents.getDemandAndSlope()))
+    def marketClearingPrice(self: ap.Model):
+        """Returns inductive market clearing price."""
+        return (
+            sum(
+                [
+                    (
+                        self.dividend * agent.rules.get(agent.currentRule).get("a")
+                        + agent.rules.get(agent.currentRule).get("b")
+                    )
+                    / agent.rules.get(agent.currentRule).get("accuracy")
+                    for agent in self.agents
+                ]
             )
-            if (self.demandTotal <= self.p.minExcess) & (
-                self.demandTotal >= -self.p.minExcess
-            ):  # self.demandTotal == self.p.N:
-                done = True
-                # if self.demandTotal == 0:
-                pass
-            if self.slopeTotal != 0:
-                self.price -= self.demandTotal / self.slopeTotal
-            else:
-                self.price = self.price * ((1 + eta) * self.demandTotal)
-            self.worldState = self.worldInformation()
-            self.agents.update()
-            if self.price < self.p.minPrice:
-                self.price = self.p.minPrice
-            elif self.price > self.p.maxPrice:
-                self.price = self.p.maxPrice
-            """print(
-                f"\nTimestamp: {self.t}, Trial: {i}\nPrice: {self.price}\nDemand: {self.demandTotal}"
-            )"""
+            - self.p.N * self.p.dorra
+        ) / (
+            sum(
+                [
+                    (
+                        (
+                            (1 + self.p.interestRate)
+                            - agent.rules.get(agent.currentRule).get("a")
+                        )
+                        / agent.rules.get(agent.currentRule).get("accuracy")
+                    )
+                    for agent in self.agents
+                ]
+            )
+        )
 
     def hreeValues(
         self: ap.Model,
@@ -155,15 +144,3 @@ class ArtificialStockMarket(ap.Model):
             )
         ) / self.p.interestRate
         return f * self.dividend + g
-
-    def market_clearing_price(self: ap.Model) -> float:
-        ""Returns inductive market clearing price.""
-        numerator = (
-            self.dividend * (sum(self.agents.slope) / sum(self.agents.pdVariance))
-            + (sum(self.agents.intercept) / sum(self.agents.pdVariance))
-            - self.p.N * self.p.dorra
-        )
-        denominator = (1 + self.p.interestRate) * (1 / sum(self.agents.pdVariance)) - (
-            sum(self.agents.slope) / sum(self.agents.pdVariance)
-        )
-        return numerator / denominator"""
