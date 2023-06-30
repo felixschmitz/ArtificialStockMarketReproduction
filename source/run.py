@@ -30,11 +30,13 @@ if __name__ == "__main__":
     modelResults = runningModel()
 
     # data = modelResults["variables"]["MarketStatistician"][["pdExpectation"]]
-    data = modelResults["variables"]["ArtificialStockMarket"][["dividend", "price"]]
+    data = modelResults["variables"]["ArtificialStockMarket"].loc[
+        parameters.get("steps") * 3 / 4 :, ["hreePrice", "price"]
+    ]
     fig = lineplot(data)
 
     """data = modelResults["variables"]["ArtificialStockMarket"][
         ["pd", "varPriceDividend"]
     ]
     fig = errLineplot(data=data, y="pd", err="varPriceDividend")"""
-    # plt.show()
+    plt.show()
