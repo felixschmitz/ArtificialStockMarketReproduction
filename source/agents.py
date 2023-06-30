@@ -165,14 +165,28 @@ class MarketStatistician(ap.Agent):
             activeRuleKeys = [0]
             weights = [rule["fitness"] for rule in self.rules.values()]
             self.rules[0] = {
+                "condition": {
+                    i + 1: (None if i < 10 else True if i == 10 else False)
+                    for i in range(12)
+                },
+                "activationIndicator": 1,
+                "activationCount": 0,
                 "a": np.average(
                     [rule["a"] for rule in self.rules.values()], weights=weights
                 ),
                 "b": np.average(
                     [rule["b"] for rule in self.rules.values()], weights=weights
                 ),
-                "fitness": self.model.p.M,
-                "accuracy": self.model.p.initialPredictorVariance,
+                "fitness": np.average(
+                    [rule["fitness"] for rule in self.rules.values()], weights=weights
+                ),  # self.model.p.M,
+                "accuracy": np.average(
+                    [rule["accuracy"] for rule in self.rules.values()], weights=weights
+                ),  # self.model.p.initialPredictorVariance,
+                "errorVariance": np.average(
+                    [rule["errorVariance"] for rule in self.rules.values()],
+                    weights=weights,
+                ),  # self.model.p.initialPredictorVariance,
             }
         return currentRuleKey, activeRuleKeys
 
