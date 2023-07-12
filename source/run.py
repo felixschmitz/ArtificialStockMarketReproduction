@@ -5,6 +5,7 @@ from viz_helper import lineplot, errLineplot
 
 import agentpy as ap
 import matplotlib.pyplot as plt
+import time
 
 
 def runningExperiment(params: dict = parameters, model: ap.Model = ASM) -> ap.DataDict:
@@ -36,6 +37,14 @@ if __name__ == "__main__":
     ]
     fig = lineplot(data)
 
+    r = str(input("Saving model results to file (T/F): "))
+    if "t" in r.lower():
+        modelResults.save(
+            exp_name=f"ASM_{steps}",
+            exp_id=time.strftime("%d%m%Y-%H%M%S"),
+            path="results",
+            display=True,
+        )
     """data = modelResults["variables"]["ArtificialStockMarket"][
         ["pd", "varPriceDividend"]
     ]
