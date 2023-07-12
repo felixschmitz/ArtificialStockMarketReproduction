@@ -1,10 +1,11 @@
 parameters = {
+    "importPath": r"results/ASM_100_10072023-222527",  # path to innate rules
     "seed": 42,
-    "mode": 0,  # with standard mode [0], diagnostics test hree [1], and diagnostics test adaptation [2]
+    "mode": 0,  # with standard mode [0], diagnostics test hree [1], diagnostics test adaptation [2], and innating rules (saving time) [3]
     # 'dividendSequence': None, # for mode 2; diagnostics test with given dividend sequence
     # 'priceSeries': None, # for mode 2; diagnostics test with given price series
     "N": 25,  # num of agents & num of assets
-    "steps": 5e1,  # num of steps/iterations by the model
+    "steps": 1e5,  # num of steps/iterations by the model
     "averageDividend": 10,  # \bar{d}
     "autoregressiveParam": 0.95,  # in the paper rho
     "errorVar": 0.0743,
