@@ -10,6 +10,8 @@ np.seterr("raise")
 class ArtificialStockMarket(ap.Model):
     def setup(self: ap.Model):
         """setup function initializing and declaring class specific variables"""
+        if self.p.mode > 1:
+            self.importedDataDict = self.readDataDict(dataDictPath=self.p.importPath)
         self.theta = 1 / 75 if self.p.forecastAdaptation else 1 / 150
         self.dividend = self.p.averageDividend
         self.price = 100
@@ -47,6 +49,14 @@ class ArtificialStockMarket(ap.Model):
         """updating central variables of the model"""
         self.varPriceDividend = np.var(
             np.array(self.log.get("dividend") + np.array(self.log.get("price")))
+        )
+
+    def readDataDict(self: ap.Agent, dataDictPath: str) -> dict:
+        """reading data from dict"""
+        exp_name, exp_id = dataDictPath.rsplit("_", 1)
+        path, exp_name = exp_name.rsplit("/", 1)
+        return ap.DataDict.load(
+            exp_name=exp_name, exp_id=exp_id, path=path, display=False
         )
 
     def dividend_process(self: ap.Model) -> float:
