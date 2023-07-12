@@ -2,6 +2,7 @@ import agentpy as ap
 import numpy as np
 import scipy
 import math
+from ast import literal_eval
 
 
 class MarketStatistician(ap.Agent):
@@ -46,9 +47,26 @@ class MarketStatistician(ap.Agent):
 
     def document(self: ap.Agent):
         """documenting relevant variables of agents"""
-        # self.record(["demand", "wealth", "utility"])
-        self.record(["demand"])
-        self.record("pdExpectation", self.expectationFormation())
+        # self.record(["demand"])
+        # self.record("pdExpectation", self.expectationFormation())
+        self.record(["forecast"])
+        if self.model.t == self.model.p.steps:
+            self.record(["rules"])
+
+    def initializeRules(self: ap.Agent, numRules: int) -> dict:
+        """initializing dict of rules with respective predictive bitstring rules"""
+        if self.model.p.mode == 3:
+            d = literal_eval(
+                self.model.importedDataDict["variables"]["MarketStatistician"]
+                .loc[self.id]
+                .iloc[-1]
+                .rules
+            )
+        else:
+            d = {}
+            for i in range(1, numRules + 1):
+                d[i] = self.createRule()
+        return d
 
     def createRule(self: ap.Agent) -> dict:
         """creating dict of predictive bitstring rule with respective predictor and observatory meassures"""
@@ -124,20 +142,13 @@ class MarketStatistician(ap.Agent):
         """mutating a single bit of a predictive vector or bitstring"""
         if predictiveBit:
             # mutating a predictive vector
-            # is this ok or do I need to make sure they stay in the proper ranges?
+            # is this ok or do I need to make sure they stay in the specific ranges?
             return bit * self.model.nprandom.uniform(0.8, 1.2)
         else:
             # mutating a bitstring
             s = {True, False, None}
             s.remove(bit)
             return self.model.nprandom.choice(list(s))
-
-    def initializeRules(self: ap.Agent, numRules: int) -> dict:
-        """initializing dict of rules with respective predictive bitstring rules"""
-        d = {}
-        for i in range(1, numRules + 1):
-            d[i] = self.createRule()
-        return d
 
     def activateRules(self: ap.Agent) -> tuple[int, list]:
         """activating the rules matching the models worldState and returning a list reflecting the keys"""
