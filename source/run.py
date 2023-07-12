@@ -27,11 +27,12 @@ def runningModel(params: dict = parameters, model: ap.Model = ASM) -> ap.DataDic
 if __name__ == "__main__":
     # experiment_results = runningExperiment()
     # print(experimentResults['info'])
+    steps = int(parameters.get("steps"))
     modelResults = runningModel()
 
     # data = modelResults["variables"]["MarketStatistician"][["pdExpectation"]]
     data = modelResults["variables"]["ArtificialStockMarket"].loc[
-        parameters.get("steps") * 3 / 4 :, ["hreePrice", "price"]
+        steps * 3 / 4 :, ["hreePrice", "price"]
     ]
     fig = lineplot(data)
 
