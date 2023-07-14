@@ -31,13 +31,18 @@ if __name__ == "__main__":
     steps = int(parameters.get("steps"))
     modelResults = runningModel()
 
-    # data = modelResults["variables"]["MarketStatistician"][["pdExpectation"]]
+    # data = modelResults["variables"]["MarketStatistician"][["demand"]]
     data = modelResults["variables"]["ArtificialStockMarket"].loc[
-        steps * 3 / 4 :, ["hreePrice", "price"]
+        # steps * 3 / 4 :, ["hreePrice", "price"]
+        :,
+        ["price", "hreePrice"],
+        # ["avgForecast", "hreeForecast"],
     ]
+
     fig = lineplot(data)
 
-    r = str(input("Saving model results to file (T/F): "))
+    # r = str(input("Saving model results to file (T/F): "))
+    r = "f"
     if "t" in r.lower():
         modelResults.save(
             exp_name=f"ASM_{steps}",
