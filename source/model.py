@@ -12,6 +12,8 @@ class ArtificialStockMarket(ap.Model):
         """setup function initializing and declaring class specific variables"""
         if self.p.mode > 1:
             self.importedDataDict = self.readDataDict(dataDictPath=self.p.importPath)
+        self.hreeRandom = self.randomGenerator()
+        self.dividendRandom = self.randomGenerator()
         self.theta = 1 / 75 if self.p.forecastAdaptation else 1 / 150
         self.dividend = self.p.averageDividend
         self.price = 100
@@ -21,19 +23,28 @@ class ArtificialStockMarket(ap.Model):
         self.worldState = self.worldInformation()
         self.agents = ap.AgentList(self, self.p.N, MS)
 
+    def randomGenerator(self: ap.Model) -> np.random.Generator:
+        """returning a random generator"""
+        seed = self.model.random.getrandbits(self.p.seed)
+        return np.random.default_rng(seed=seed)
+
     def step(self: ap.Model):
         """model centered timeline followed at each timestep"""
         self.dividend = self.dividend_process()
         self.worldState = self.worldInformation()
+        self.hreePrice = self.hreePriceCalc()
         self.agents.step()
         self.price = self.marketClearingPrice()
-        self.hreePrice = self.hreePriceCalc()
         self.agents.update()
         self.agents.document()
         self.document()
 
     def document(self: ap.Model):
         """documenting relevant variables of the model"""
+        if self.t > 0:
+            self.record("avgForecast", np.average(self.agents.forecast))
+            self.record("hreeForecast", self.hreeForecastCalc())
+            self.record("avgDemand", np.average(self.agents.demand))
         self.record(
             [
                 "dividend",
@@ -42,6 +53,7 @@ class ArtificialStockMarket(ap.Model):
             ]
         )
         self.record("pd", self.price + self.dividend)
+
         self.update()
         self.record(["varPriceDividend"])
 
@@ -61,7 +73,7 @@ class ArtificialStockMarket(ap.Model):
 
     def dividend_process(self: ap.Model) -> float:
         """returning current dividend based on AR(1) process"""
-        errorTerm = self.nprandom.normal(0, math.sqrt(self.p.errorVar))
+        errorTerm = self.dividendRandom.normal(0, math.sqrt(self.p.errorVar))
         return (
             self.p.averageDividend
             + self.p.autoregressiveParam * (self.dividend - self.p.averageDividend)
@@ -126,8 +138,8 @@ class ArtificialStockMarket(ap.Model):
     ):
         """Returns homogeneous rational expectations equilibrium predictor values."""
         return (
-            self.nprandom.uniform(a_min, a_max),
-            self.nprandom.uniform(b_min, b_max),
+            self.hreeRandom.uniform(a_min, a_max),
+            self.hreeRandom.uniform(b_min, b_max),
             # self.p.initialPredictorVariance,
         )
 
@@ -146,8 +158,10 @@ class ArtificialStockMarket(ap.Model):
         return f * self.dividend + g
 
     def hreeForecastCalc(self: ap.Model) -> float:
-        """Returns homogeneous raional expactation equilibrium of next periods price"""
-        return (1 + self.p.interestRate) * self.price + (
-            (self.p.dorra * (2 + self.interestRate) * self.p.errorVar)
+        """Returns homogeneous raional expactation equilibrium of next periods price plus dividend."""
+        return (
+            1 + self.p.interestRate
+        ) * self.price + (  # self.log.get("price")[-2] + (
+            (self.p.dorra * (2 + self.p.interestRate) * self.p.errorVar)
             / (1 + self.p.interestRate - self.p.autoregressiveParam)
         )

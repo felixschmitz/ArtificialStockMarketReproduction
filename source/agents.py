@@ -16,29 +16,26 @@ class MarketStatistician(ap.Agent):
         self.optimalStockOwned = 1
         self.demand = self.optimalStockOwned - self.position
         self.slope = 0
-        self.pCrossOver = 0.1 if self.model.p.forecastAdaptation else 0.3
 
     def step(self: ap.Agent):
         """agent centered timeline followed at each timestep"""
         self.currentRule, self.activeRules = self.activateRules()
         self.forecast = self.expectationFormation()
-        self.settingDemandAndSlope()
-        self.constrainDemand()
+        self.demand = self.demandCalc()
+        # self.demand, self.slope = self.settingDemandAndSlope()
 
     def update(self: ap.Agent):
         """updating central variables of agents"""
         self.errorVarianceUpdate()
-        # self.utility = self.utilityFunction()
-
-        gARandInt = self.model.nprandom.integers(1000)
+        self.gARandom = self.model.randomGenerator()
+        gARandInt = self.gARandom.integers(1000)
         gACondition = ((self.model.p.forecastAdaptation) & (gARandInt < 4)) | (
             (not self.model.p.forecastAdaptation) & (gARandInt == 0)
         )
-        # fast: forecastAdaptataion == True, gARandInt < 4, theta = 1/75, p(crossover) = 0.1
-        # slow: forecastAdaptation == False, gARandInt == 0, theta = 1/150, p(crossover) = 0.3
         if gACondition:
             self.geneticAlgorithm()
 
+        # self.utility = self.utilityFunction()
         # self.wealth = self.wealthCalc()
         """self.currCash = (
             self.currCash * (1 + self.model.p.interestRate)
@@ -47,15 +44,13 @@ class MarketStatistician(ap.Agent):
 
     def document(self: ap.Agent):
         """documenting relevant variables of agents"""
-        # self.record(["demand"])
-        # self.record("pdExpectation", self.expectationFormation())
-        self.record(["forecast"])
+        self.record(["forecast", "demand", "cash", "position"])
         if self.model.t == self.model.p.steps:
             self.record(["rules"])
 
     def initializeRules(self: ap.Agent, numRules: int) -> dict:
         """initializing dict of rules with respective predictive bitstring rules"""
-        if self.model.p.mode == 3:
+        if self.model.p.mode == 3 and self.model.t == 0:
             d = literal_eval(
                 self.model.importedDataDict["variables"]["MarketStatistician"]
                 .loc[self.id]
@@ -70,17 +65,18 @@ class MarketStatistician(ap.Agent):
 
     def createRule(self: ap.Agent) -> dict:
         """creating dict of predictive bitstring rule with respective predictor and observatory meassures"""
+        self.ruleRandom = self.model.randomGenerator()
         constantConditions = {11: 1, 12: 0}
         variableConditions = {
             i: (1 if j < 10 else 0 if 10 <= j < 20 else None)
-            for i, j in enumerate(self.model.nprandom.integers(0, 100, 10).tolist(), 1)
+            for i, j in enumerate(self.ruleRandom.integers(0, 100, 10).tolist(), 1)
         }
         return {
             "condition": variableConditions | constantConditions,
             "activationIndicator": 0,
             "activationCount": 0,
-            "a": self.model.nprandom.uniform(0.7, 1.2),
-            "b": self.model.nprandom.uniform(-10, 19.002),
+            "a": self.ruleRandom.uniform(0.7, 1.2),
+            "b": self.ruleRandom.uniform(-10, 19.002),
             "fitness": self.model.p.M,
             "accuracy": self.model.p.initialPredictorVariance,
             "errorVariance": self.model.p.initialPredictorVariance,
@@ -90,12 +86,15 @@ class MarketStatistician(ap.Agent):
         self: ap.Agent, ruleID: int, parentRuleID1: int, parentRuleID2: int
     ) -> dict:
         """crossover of two parent rules"""
+        self.crossoverRandom = self.model.randomGenerator()
         # crossover on bitstring level
         constantConditions = {11: 1, 12: 0}
         variableConditions = {
             idx + 1: (self.rules[parentID]["condition"][idx + 1])
             for idx, parentID in enumerate(
-                self.model.nprandom.choice([parentRuleID1, parentRuleID2], 10).tolist(),
+                self.crossoverRandom.choice(
+                    [parentRuleID1, parentRuleID2], 10
+                ).tolist(),
             )
         }
         # setting new bitstring after uniform crossover
@@ -105,12 +104,12 @@ class MarketStatistician(ap.Agent):
         # 0: crossover component-wise,
         # 1: linear combination,
         # 2: complete selection of one predictive vector
-        crossoverProcedure = self.model.nprandom.integers(3)
+        crossoverProcedure = self.crossoverRandom.integers(3)
         if crossoverProcedure == 0:
             self.rules[ruleID]["a"], self.rules[ruleID]["b"] = [
                 self.rules[parentID][("a" if not idx else "b")]
                 for idx, parentID in enumerate(
-                    self.model.nprandom.choice(
+                    self.crossoverRandom.choice(
                         [parentRuleID1, parentRuleID2], 2
                     ).tolist()
                 )
@@ -119,7 +118,7 @@ class MarketStatistician(ap.Agent):
         elif crossoverProcedure == 1:
             # linear combination of parent predictive vectors
             (p1A, p1B), (p2A, p2B) = [
-                (a, 1 - a) for a in self.model.nprandom.uniform(0, 1, 2)
+                (a, 1 - a) for a in self.crossoverRandom.uniform(0, 1, 2)
             ]
             self.rules[ruleID]["a"], self.rules[ruleID]["b"] = (
                 self.rules[parentRuleID1]["a"] * p1A
@@ -130,7 +129,7 @@ class MarketStatistician(ap.Agent):
 
         elif crossoverProcedure == 2:
             # complete selection of one of the parents' predictive vector
-            parentID = self.model.nprandom.choice([parentRuleID1, parentRuleID2])
+            parentID = self.crossoverRandom.choice([parentRuleID1, parentRuleID2])
             self.rules[ruleID]["a"], self.rules[ruleID]["b"] = (
                 self.rules[parentID]["a"],
                 self.rules[parentID]["b"],
@@ -140,15 +139,16 @@ class MarketStatistician(ap.Agent):
         self: ap.Agent, predictiveBit: bool, bit: bool | None | float
     ) -> bool | None | float:
         """mutating a single bit of a predictive vector or bitstring"""
+        self.mutationRandom = self.model.randomGenerator()
         if predictiveBit:
             # mutating a predictive vector
             # is this ok or do I need to make sure they stay in the specific ranges?
-            return bit * self.model.nprandom.uniform(0.8, 1.2)
+            return bit * self.mutationRandom.uniform(0.95, 1.05)
         else:
             # mutating a bitstring
             s = {True, False, None}
             s.remove(bit)
-            return self.model.nprandom.choice(list(s))
+            return self.mutationRandom.choice(list(s))
 
     def activateRules(self: ap.Agent) -> tuple[int, list]:
         """activating the rules matching the models worldState and returning a list reflecting the keys"""
@@ -201,10 +201,16 @@ class MarketStatistician(ap.Agent):
             }
         return currentRuleKey, activeRuleKeys
 
+    def demandCalc(self: ap.Agent) -> float:
+        """getting the demand from the demand function"""
+        return (self.forecast - self.model.price * (1 + self.model.p.interestRate)) / (
+            self.model.p.dorra * self.rules.get(self.currentRule).get("accuracy")
+        )
+
     def settingDemandAndSlope(self: ap.Agent):
         """setting the demand and the slope of the demand function"""
         if self.forecast >= 0:
-            self.demand = -(
+            demand = -(
                 (
                     (self.model.price * (1 + self.model.dividend) - self.forecast)
                     / (
@@ -214,47 +220,42 @@ class MarketStatistician(ap.Agent):
                 )
                 + self.position
             )
-            self.slope = (
+            slope = (
                 self.rules.get(self.currentRule).get("a") - (1 + self.model.dividend)
             ) / (self.model.p.dorra * self.rules.get(self.currentRule).get("accuracy"))
         else:
             self.forecast = 0
-            self.demand = -(self.model.price * (1 + self.model.dividend)) / (
+            demand = -(self.model.price * (1 + self.model.dividend)) / (
                 (self.model.p.dorra * self.rules.get(self.currentRule).get("accuracy"))
                 + self.position
             )
-            self.slope = -(1 + self.model.dividend) / (
+            slope = -(1 + self.model.dividend) / (
                 self.model.p.dorra * self.rules.get(self.currentRule).get("accuracy")
             )
 
         # restricting the demand within the range of the maximum bid
-        if self.demand > self.model.p.maxBid:
-            self.demand = self.model.p.maxBid
-            self.slope = 0
-        elif self.demand < -self.model.p.maxBid:
-            self.demand = -self.model.p.maxBid
-            self.slope = 0
+        if demand > self.model.p.maxBid:
+            demand = self.model.p.maxBid
+            slope = 0
+        elif demand < -self.model.p.maxBid:
+            demand = -self.model.p.maxBid
+            slope = 0
+        return self.constrainDemand(demand=demand, slope=slope)
 
-    def getDemandAndSlope(self: ap.Agent) -> tuple[float, float]:
-        """returning the demand and the slope of the demand function"""
-        return self.demand, self.slope
-
-    def constrainDemand(self: ap.Agent):
+    def constrainDemand(self: ap.Agent, demand: float, slope: float) -> tuple[float]:
         """constraining the demand to the maximum bid and the minimum holding"""
-        if self.demand > 0:
-            if self.demand * self.model.price > self.cash - self.model.p.minCash:
+        if demand > 0:
+            if demand * self.model.price > self.cash - self.model.p.minCash:
                 if self.cash - self.model.p.minCash > 0:
-                    self.demand = (self.cash - self.model.p.minCash) / self.model.price
-                    self.slope = -self.demand / self.model.price
+                    demand = (self.cash - self.model.p.minCash) / self.model.price
+                    slope = -self.demand / self.model.price
                 else:
-                    self.demand = 0
-                    self.slope = 0
-
-        elif (self.demand < 0) & (
-            self.demand + self.position < self.model.p.minHolding
-        ):
-            self.demand = self.model.p.minHolding - self.position
-            self.slope = 0
+                    demand = 0
+                    slope = 0
+        elif (demand < 0) & (demand + self.position < self.model.p.minHolding):
+            demand = self.model.p.minHolding - self.position
+            slope = 0
+        return demand, slope
 
     def expectationFormation(self: ap.Agent) -> float:
         """returning combined expected price plus dividend based on activated rule"""
@@ -308,7 +309,7 @@ class MarketStatistician(ap.Agent):
                 # initializing new rule
                 self.rules[ruleID] = self.createRule()
 
-                crossoverRandInt = self.model.nprandom.integers(100)
+                crossoverRandInt = self.gARandom.integers(100)
                 crossoverCondition = (
                     (self.model.p.forecastAdaptation) & (crossoverRandInt < 30)
                 ) | ((not self.model.p.forecastAdaptation) & (crossoverRandInt < 10))
@@ -316,7 +317,7 @@ class MarketStatistician(ap.Agent):
                 # and 0.1 in the slow adaptation case
                 if crossoverCondition:
                     # parents for crossover are chosen based on fitness
-                    p1, p2 = self.model.nprandom.choice(
+                    p1, p2 = self.gARandom.choice(
                         list(parentRules),
                         2,
                         p=normalizedFitnessValues,
@@ -328,12 +329,12 @@ class MarketStatistician(ap.Agent):
 
                 # mutation takes place with probability 0.03 per bit
                 for predictor in ["a", "b"]:
-                    if self.model.nprandom.random() < 0.03:
+                    if self.gARandom.random() < 0.03:
                         self.rules[ruleID][predictor] = self.mutatingBit(
                             predictiveBit=True, bit=self.rules[ruleID][predictor]
                         )
                 for key in range(1, 11):
-                    if self.model.nprandom.random() < 0.03:
+                    if self.gARandom.random() < 0.03:
                         self.rules[ruleID]["condition"][key] = self.mutatingBit(
                             predictiveBit=False,
                             bit=self.rules[ruleID]["condition"][key],
