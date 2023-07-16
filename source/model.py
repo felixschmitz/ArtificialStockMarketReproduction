@@ -33,8 +33,11 @@ class ArtificialStockMarket(ap.Model):
         self.dividend = self.dividend_process()
         self.worldState = self.worldInformation()
         self.hreePrice = self.hreePriceCalc()
-        self.agents.step()
-        self.price = self.marketClearingPrice()
+        self.agents.step()  # activating world state matching predictors
+        self.specialistPriceCalc()
+        # self.price = self.marketClearingPrice()
+        # print(sum(self.agents.demandCalc()))
+        # print(sum(self.agents.demand))
         self.agents.update()
         self.agents.document()
         self.document()
@@ -70,6 +73,24 @@ class ArtificialStockMarket(ap.Model):
         return ap.DataDict.load(
             exp_name=exp_name, exp_id=exp_id, path=path, display=False
         )
+
+    def specialistPriceCalc(self: ap.Model) -> float:
+        trialsSpecialist = 0
+        # p_trial = self.price
+        while trialsSpecialist < self.p.trialsSpecialist:
+            trialsSpecialist += 1
+            self.agents.specialistSteps()
+            sumDemand = sum(self.agents.demand)
+            demandDifference = sumDemand - self.p.N
+            if abs(demandDifference) > self.p.epsilon:
+                self.price += demandDifference * np.average(self.agents.slope)
+                self.price = (
+                    self.p.minPrice
+                    if self.price < self.p.minPrice
+                    else (
+                        self.p.maxPrice if self.price > self.p.maxPrice else self.price
+                    )
+                )
 
     def dividend_process(self: ap.Model) -> float:
         """returning current dividend based on AR(1) process"""
