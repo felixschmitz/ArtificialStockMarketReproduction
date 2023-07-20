@@ -2,9 +2,9 @@ parameters = {
     "importPath": r"results/ASM_50000_20072023-200058",  # path to innate rules
     "seed": 42,
     "forecastAdaptation": 1,  # binary with 0 for slow/hree and 1 for fast/complex
-    "mode": 3,  # with standard mode [0], diagnostics test "clamped" hree predictors [1],
+    "mode": 0,  # with standard mode [0], diagnostics test "clamped" hree predictors [1],
     # diagnostics test hree adaptation [2], and innating rules (pre-trained rules) [3]
-    "steps": 5e3,  # num of steps/iterations by the model
+    "steps": 5e1,  # num of steps/iterations by the model
     "N": 25,  # num of agents & num of assets
     "averageDividend": 10,  # \bar{d}
     "autoregressiveParam": 0.95,  # in the paper rho

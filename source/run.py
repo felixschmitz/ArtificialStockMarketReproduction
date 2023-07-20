@@ -12,9 +12,12 @@ def runningExperiment(params: dict = parameters, model: ap.Model = ASM) -> ap.Da
     """running an agentpy experiment with extended params"""
     expParams = params
     expParams.update({"forecast_adaptation": ap.Values(0, 1)})
+    """expSample = ap.Sample(expParams, randomize=False)
+    exp = ap.Experiment(model, expSample, iterations=1, record=True, randomize=False)"""
     expSample = ap.Sample(expParams, randomize=False)
-    exp = ap.Experiment(model, expSample, iterations=1, record=True, randomize=False)
-    expResults = exp.run(n_jobs=-1)
+    exp = ap.Experiment(model, expSample, iterations=2, record=True, randomize=False)
+    # expResults = exp.run(n_jobs=-1)
+    expResults = exp.run()
     return expResults
 
 
