@@ -13,6 +13,7 @@ class MarketStatistician(ap.Agent):
         self.currentRule, self.activeRules = self.activateRules()
         self.forecast = self.expectationFormation()
         self.position = 1
+        self.wealth = self.cash + self.position * self.model.price
         self.optimalStockOwned = 1
         self.demand = self.optimalStockOwned - self.position
         self.slope = 0
@@ -39,12 +40,14 @@ class MarketStatistician(ap.Agent):
         if gACondition:
             self.geneticAlgorithm()
 
-        # self.utility = self.utilityFunction()
-        # self.wealth = self.wealthCalc()
-        """self.currCash = (
-            self.currCash * (1 + self.model.p.interestRate)
-            + self.model.dividend * self.position
-        )"""
+        # cash calculation with taxation based on Ehrentreich (2008) to prevent wealth explosion
+        self.position = self.position + self.demand
+        self.cash = self.cash + self.position * (
+            self.model.dividend - self.model.p.interestRate * self.model.price
+        )
+        self.wealth = self.cash + self.position * self.model.price
+
+        # utility update?
 
     def document(self: ap.Agent):
         """documenting relevant variables of agents"""
