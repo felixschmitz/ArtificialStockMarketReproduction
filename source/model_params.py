@@ -1,8 +1,8 @@
 parameters = {
-    "importPath": r"results/ASM_100000_12072023-160700",  # path to innate rules
+    "importPath": r"results/ASM_200000_18072023-224656",  # path to innate rules
     "seed": 42,
     "forecastAdaptation": 1,  # binary with 0 for slow and 1 for fast
-    "mode": 0,  # with standard mode [0], diagnostics test hree [1],
+    "mode": 3,  # with standard mode [0], diagnostics test hree [1],
     # diagnostics test adaptation [2], and innating rules (pre-trained rules) [3]
     # 'dividendSequence': None, # for mode 2; diagnostics test with given dividend sequence
     # 'priceSeries': None, # for mode 2; diagnostics test with given price series
@@ -24,6 +24,6 @@ parameters = {
     "minExcess": 0.01,  # minimum excess demand for market clearing
     "minPrice": 0.01,  # minimum price for market clearing
     "maxPrice": 500,  # maximum price for market clearing
-    "minHolding": -5,  # minimum holding for market clearing
+    "minHolding": 0,  # minimum holding for market clearing
     "maxBid": 10,  # maximum nummber of asset bid of each agent
 }
