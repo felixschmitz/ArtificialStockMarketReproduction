@@ -20,6 +20,8 @@ class MarketStatistician(ap.Agent):
 
     def step(self: ap.Agent):
         """agent centered timeline followed at each timestep"""
+        self.prevForecast = self.forecast
+        self.prevActiveRules = self.activeRules.copy()
         self.currentRule, self.activeRules = self.activateRules()
         # self.forecast = self.expectationFormation()  # based on last period's price
         # self.demand = self.demandCalc()  # based on last period's price
@@ -208,11 +210,17 @@ class MarketStatistician(ap.Agent):
             }
         return currentRuleKey, activeRuleKeys
 
-    def demandCalc(self: ap.Agent) -> float:
-        """getting the demand from the demand function"""
-        return (self.forecast - self.model.price * (1 + self.model.p.interestRate)) / (
-            self.model.p.dorra * self.rules.get(self.currentRule).get("accuracy")
-        )
+    def expectationFormation(self: ap.Agent) -> float:
+        """returning combined expected price plus dividend based on activated rule"""
+        return self.rules.get(self.currentRule).get("a") * (
+            self.model.price + self.model.dividend
+        ) + self.rules.get(self.currentRule).get("b")
+
+    def previousExpectationFormation(self: ap.Agent, ruleID: int) -> float:
+        """returning combined expected price plus dividend based on activated rule"""
+        return self.rules.get(ruleID).get("a") * (
+            self.model.log.get("price") + self.model.log.get("dividend")
+        ) + self.rules.get(ruleID).get("b")
 
     def demandAndSlopeCalc(self: ap.Agent) -> float:
         """getting the demand and slope from the demand function"""
@@ -282,12 +290,12 @@ class MarketStatistician(ap.Agent):
 
     def errorVarianceUpdate(self: ap.Agent) -> None:
         """updating the errorVariance of the predictors"""
-        for ruleID in self.activeRules:
+        for ruleID in self.prevActiveRules:
             if ruleID != 0:
                 self.rules[ruleID]["errorVariance"] = (
                     1 - self.model.theta
                 ) * self.rules[ruleID]["errorVariance"] + self.model.theta * math.pow(
-                    self.model.price + self.model.dividend - self.forecast, 2
+                    self.model.price + self.model.dividend - self.prevForecast, 2
                 )
                 self.rules[ruleID]["activationIndicator"] = 0
 
