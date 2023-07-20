@@ -40,6 +40,7 @@ class MarketStatistician(ap.Agent):
             self.geneticAlgorithm()
 
         # cash calculation with taxation based on Ehrentreich (2008) to prevent wealth explosion
+        self.cash -= self.demand * self.model.price
         self.position = self.position + self.demand
         self.cash = self.cash + self.position * (
             self.model.dividend - self.model.p.interestRate * self.model.price
