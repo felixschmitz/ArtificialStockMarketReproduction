@@ -1,6 +1,6 @@
 import agentpy as ap
 import numpy as np
-import scipy
+from operator import countOf
 import math
 from ast import literal_eval
 
@@ -14,8 +14,7 @@ class MarketStatistician(ap.Agent):
         self.forecast = self.expectationFormation()
         self.position = 1
         self.wealth = self.cash + self.position * self.model.price
-        self.optimalStockOwned = 1
-        self.demand = self.optimalStockOwned - self.position
+        self.demand = 1
         self.slope = 0
 
     def step(self: ap.Agent):
@@ -40,18 +39,27 @@ class MarketStatistician(ap.Agent):
             self.geneticAlgorithm()
 
         # cash calculation with taxation based on Ehrentreich (2008) to prevent wealth explosion
-        self.cash -= self.demand * self.model.price
-        self.position = self.position + self.demand
+        self.cash -= (self.demand - self.position) * self.model.price
+        # self.position += self.demand
+        self.position = self.demand
         self.cash = self.cash + self.position * (
             self.model.dividend - self.model.p.interestRate * self.model.price
         )
         self.wealth = self.cash + self.position * self.model.price
-
         # utility update?
 
     def document(self: ap.Agent):
         """documenting relevant variables of agents"""
-        self.record(["forecast", "demand", "cash", "position"])
+        self.record(
+            "bitsUsed",
+            sum(
+                [
+                    12 - countOf(self.rules[rule]["condition"].values(), None)
+                    for rule in self.rules
+                ]
+            ),
+        )
+        self.record(["forecast", "demand", "cash", "wealth", "position"])
         if self.model.t == self.model.p.steps:
             self.record(["rules"])
 
@@ -82,8 +90,12 @@ class MarketStatistician(ap.Agent):
             "condition": variableConditions | constantConditions,
             "activationIndicator": 0,
             "activationCount": 0,
-            "a": self.ruleRandom.uniform(0.7, 1.2),
-            "b": self.ruleRandom.uniform(-10, 19.002),
+            "a": self.ruleRandom.uniform(0.7, 1.2)
+            if self.model.p.mode != 1
+            else self.model.p.hreeA,
+            "b": self.ruleRandom.uniform(-10, 19.002)
+            if self.model.p.mode != 1
+            else self.model.p.hreeB,
             "fitness": self.model.p.M,
             "accuracy": self.model.p.initialPredictorVariance,
             "errorVariance": self.model.p.initialPredictorVariance,
@@ -160,24 +172,21 @@ class MarketStatistician(ap.Agent):
         slope = self.rules.get(self.currentRule).get("a") - (
             1 + self.model.p.interestRate
         ) / (self.model.p.dorra * self.rules.get(self.currentRule).get("accuracy"))
-        demand, slope = self.constrainDemand(demand, slope)
-        return round(demand, 0), slope
-        # constrain demand
-
-    def constrainDemand(self: ap.Agent, demand: float, slope: float) -> tuple[float]:
-        """constraining the demand to the maximum bid and the minimum holding"""
-        if demand > 0:
-            if (demand * self.model.price) > (self.cash - self.model.p.minCash):
-                if self.cash - self.model.p.minCash > 0:
-                    demand = (self.cash - self.model.p.minCash) / self.model.price
-                    slope = -self.demand / self.model.price
-                else:
-                    demand = 0
-                    slope = 0
-        elif (demand < 0) & ((demand + self.position) < self.model.p.minHolding):
-            demand = self.model.p.minHolding - self.position
-            slope = 0
+        demand = self.constrainDemand(demand)
         return demand, slope
+
+    def constrainDemand(self: ap.Agent, demand: float) -> float:
+        """constraining the demand to the maximum bid and the minimum holding"""
+        if (demand > 0) & (
+            (demand * self.model.price) > (self.cash - self.model.p.minCash)
+        ):
+            if self.cash - self.model.p.minCash > 0:
+                demand = (self.cash - self.model.p.minCash) / self.model.price
+            else:
+                demand = 0
+        elif (demand < 0) & (demand < self.model.p.minHolding):
+            demand = self.model.p.minHolding
+        return demand
 
     def errorVarianceUpdate(self: ap.Agent) -> None:
         """updating the errorVariance of the predictors"""
