@@ -32,12 +32,9 @@ class ArtificialStockMarket(ap.Model):
         """model centered timeline followed at each timestep"""
         self.dividend = self.dividend_process()
         self.worldState = self.worldInformation()
-        self.hreePrice = self.hreePriceCalc()
+        # self.hreePrice = self.hreePriceCalc() # here
         self.agents.step()  # activating world state matching predictors
         self.specialistPriceCalc()
-        # self.price = self.marketClearingPrice()
-        # print(sum(self.agents.demandCalc()))
-        # print(sum(self.agents.demand))
         self.agents.update()
         self.agents.document()
         self.document()
@@ -48,6 +45,8 @@ class ArtificialStockMarket(ap.Model):
             self.record("avgForecast", np.average(self.agents.forecast))
             self.record("hreeForecast", self.hreeForecastCalc())
             self.record("avgDemand", np.average(self.agents.demand))
+            self.record("avgWealth", np.average(self.agents.wealth))
+        self.hreePrice = self.hreePriceCalc()  # or here
         self.record(
             [
                 "dividend",
@@ -78,6 +77,9 @@ class ArtificialStockMarket(ap.Model):
         trialsSpecialist = 0
         # p_trial = self.price
         while trialsSpecialist < self.p.trialsSpecialist:
+            # print(map(lambda x: x.round(), self.agents.demand))
+            # roundedDemand = [round(elem, 0) for elem in self.agents.demand]
+            # print(sum(roundedDemand))
             trialsSpecialist += 1
             self.agents.specialistSteps()
             sumDemand = sum(self.agents.demand)
@@ -91,6 +93,8 @@ class ArtificialStockMarket(ap.Model):
                         self.p.maxPrice if self.price > self.p.maxPrice else self.price
                     )
                 )
+            else:
+                break
 
     def dividend_process(self: ap.Model) -> float:
         """returning current dividend based on AR(1) process"""
