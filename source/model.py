@@ -8,50 +8,56 @@ np.seterr("raise")
 
 
 class ArtificialStockMarket(ap.Model):
-    """
-    def __init__(self, parameters=None, _run_id=None, **kwargs):
-        super().__init__(parameters, _run_id, **kwargs)
-    """
-
     def setup(self: ap.Model):
         """setup function initializing and declaring class specific variables"""
-        if self.p.forecastAdaptation:
-            self.theta = 1 / 75
-        else:
-            self.theta = 1 / 150
+        if self.p.mode > 1:
+            self.importedDataDict = self.readDataDict(dataDictPath=self.p.importPath)
+        self.hreeRandom = self.randomGenerator()
+        self.dividendRandom = self.randomGenerator()
+        self.theta = 1 / 75 if self.p.forecastAdaptation else 1 / 150
         self.dividend = self.p.averageDividend
         self.price = 100
+        self.hreePrice = self.hreePriceCalc()
         self.document()
-        self.varPriceDividend = 1
         self.worldState = self.worldInformation()
         self.agents = ap.AgentList(self, self.p.N, MS)
 
-        # self.hreeSlope, self.hreeIntercept, self.hreeVariance = self.hree_values()
-        # self.hreePrice = self.hree_price()
+    def randomGenerator(self: ap.Model) -> np.random.Generator:
+        """returning a random generator"""
+        seed = self.model.random.getrandbits(self.p.seed)
+        return np.random.default_rng(seed=seed)
 
     def step(self: ap.Model):
         """model centered timeline followed at each timestep"""
-        if self.t <= 1:
-            self.varPriceDividend = 1
         self.dividend = self.dividend_process()
-        self.specialist()
-        """
-        self.hreePrice = self.hree_price()
-        self.marketPrice = self.market_clearing_price()
-        """
+        self.worldState = self.worldInformation()
+        # self.hreePrice = self.hreePriceCalc() # here
+        self.agents.step()  # activating world state matching predictors
+        self.specialistPriceCalc()
         self.agents.update()
         self.agents.document()
         self.document()
 
     def document(self: ap.Model):
         """documenting relevant variables of the model"""
+        if self.t > 0:
+            self.record("avgForecast", np.average(self.agents.forecast))
+            self.record("avgDemand", np.average(self.agents.demand))
+            self.record("avgWealth", np.average(self.agents.wealth))
+            self.record("avgPosition", np.average(self.agents.position))
+            self.record("avgBitsUsed", np.average(self.agents.log.get("bitsUsed")))
+        if self.p.mode == 1 or self.p.mode == 2:
+            self.record("hreeForecast", self.hreeForecastCalc())
+            self.hreePrice = self.hreePriceCalc()  # or here
         self.record(
             [
                 "dividend",
                 "price",
+                "hreePrice",
             ]
         )
         self.record("pd", self.price + self.dividend)
+
         self.update()
         self.record(["varPriceDividend"])
 
@@ -61,9 +67,35 @@ class ArtificialStockMarket(ap.Model):
             np.array(self.log.get("dividend") + np.array(self.log.get("price")))
         )
 
+    def readDataDict(self: ap.Agent, dataDictPath: str) -> dict:
+        """reading data from dict"""
+        exp_name, exp_id = dataDictPath.rsplit("_", 1)
+        path, exp_name = exp_name.rsplit("/", 1)
+        return ap.DataDict.load(
+            exp_name=exp_name, exp_id=exp_id, path=path, display=False
+        )
+
+    def specialistPriceCalc(self: ap.Model):
+        trialsSpecialist = 0
+        while trialsSpecialist < self.p.trialsSpecialist:
+            trialsSpecialist += 1
+            self.agents.specialistSteps()
+            sumDemand = sum(self.agents.demand)
+            demandDifference = sumDemand - self.p.N
+            if abs(demandDifference) < self.p.epsilon:
+                break
+            # current price does not clear the market
+            # self.price -= demandDifference * np.average(self.agents.slope)
+            self.price += demandDifference * np.average(self.agents.slope)
+            self.price = (
+                self.p.minPrice
+                if self.price < self.p.minPrice
+                else (self.p.maxPrice if self.price > self.p.maxPrice else self.price)
+            )
+
     def dividend_process(self: ap.Model) -> float:
         """returning current dividend based on AR(1) process"""
-        errorTerm = self.nprandom.normal(0, math.sqrt(self.p.errorVar))
+        errorTerm = self.dividendRandom.normal(0, math.sqrt(self.p.errorVar))
         return (
             self.p.averageDividend
             + self.p.autoregressiveParam * (self.dividend - self.p.averageDividend)
@@ -90,59 +122,37 @@ class ArtificialStockMarket(ap.Model):
         """returning the moving average for a certain period (input)"""
         return np.average(self.log.get("price")[-periodMA:])
 
-    def specialist(self: ap.Model):
-        """If the specialist is not able to find a market clearing price in the first place,
-        an iterative process is started in which new trial prices are announced and agents update their
-        effective demands and partial derivatives accordingly. If complete market clearing is not reached
-        within a specified number of trials, one side of the market will be rationed.
-        """
-        i = 0
-        done = False
-        eta = 0.0005
-        while (i < self.p.trialsSpecialist) and not done:
-            i += 1
-            self.worldState = self.worldInformation()
-            self.agents.step()
-            # print(self.agents.getDemandAndSlope())
-            self.demandTotal, self.slopeTotal = tuple(
-                (sum(x) for x in zip(*self.agents.getDemandAndSlope()))
-            )
-            if (self.demandTotal <= self.p.minExcess) & (
-                self.demandTotal >= -self.p.minExcess
-            ):  # self.demandTotal == self.p.N:
-                done = True
-                # if self.demandTotal == 0:
-                pass
-            if self.slopeTotal != 0:
-                self.price -= self.demandTotal / self.slopeTotal
-            else:
-                self.price = self.price * ((1 + eta) * self.demandTotal)
-            self.worldState = self.worldInformation()
-            self.agents.update()
-            if self.price < self.p.minPrice:
-                self.price = self.p.minPrice
-            elif self.price > self.p.maxPrice:
-                self.price = self.p.maxPrice
-            """print(
-                f"\nTimestamp: {self.t}, Trial: {i}\nPrice: {self.price}\nDemand: {self.demandTotal}"
-            )"""
-
-    """def hree_values(
-        self: ap.Model,
-        a_min: float = 0.7,
-        a_max: float = 1.2,
-        b_min: float = -10,
-        b_max: float = 19.002,
-    ):
-        ""Returns homogeneous rational expectations equilibrium predictor values.""
+    def marketClearingPrice(self: ap.Model):
+        """Returns inductive market clearing price."""
         return (
-            self.nprandom.uniform(a_min, a_max),
-            self.nprandom.uniform(b_min, b_max),
-            self.p.initialPriceDividendVariance,
+            sum(
+                [
+                    (
+                        self.dividend * agent.rules.get(agent.currentRule).get("a")
+                        + agent.rules.get(agent.currentRule).get("b")
+                    )
+                    / agent.rules.get(agent.currentRule).get("accuracy")
+                    for agent in self.agents
+                ]
+            )
+            - self.p.N * self.p.dorra
+        ) / (
+            sum(
+                [
+                    (
+                        (
+                            (1 + self.p.interestRate)
+                            - agent.rules.get(agent.currentRule).get("a")
+                        )
+                        / agent.rules.get(agent.currentRule).get("accuracy")
+                    )
+                    for agent in self.agents
+                ]
+            )
         )
 
-    def hree_price(self: ap.Model) -> float:
-        ""Returns homogeneous rational expectation equilibrium price.""
+    def hreePriceCalc(self: ap.Model) -> float:
+        """Returns homogeneous rational expectation equilibrium price for current period."""
         f = self.p.autoregressiveParam / (
             1 + self.p.interestRate - self.p.autoregressiveParam
         )
@@ -155,14 +165,9 @@ class ArtificialStockMarket(ap.Model):
         ) / self.p.interestRate
         return f * self.dividend + g
 
-    def market_clearing_price(self: ap.Model) -> float:
-        ""Returns inductive market clearing price.""
-        numerator = (
-            self.dividend * (sum(self.agents.slope) / sum(self.agents.pdVariance))
-            + (sum(self.agents.intercept) / sum(self.agents.pdVariance))
-            - self.p.N * self.p.dorra
+    def hreeForecastCalc(self: ap.Model) -> float:
+        """Returns homogeneous raional expactation equilibrium forecast of next periods price plus dividend."""
+        return (1 + self.p.interestRate) * self.price + (
+            (self.p.dorra * (2 + self.p.interestRate) * self.p.errorVar)
+            / (1 + self.p.interestRate - self.p.autoregressiveParam)
         )
-        denominator = (1 + self.p.interestRate) * (1 / sum(self.agents.pdVariance)) - (
-            sum(self.agents.slope) / sum(self.agents.pdVariance)
-        )
-        return numerator / denominator"""

@@ -6,7 +6,7 @@ import pandas as pd
 def lineplot(data: pd.Series) -> plt.Figure:
     """Plot a lineplot of the data."""
     fig, ax = plt.subplots()
-    data.plot(ax=ax)
+    data.plot(ax=ax, alpha=0.5, marker="o", markersize=2, linestyle="-")
     return fig
 
 
