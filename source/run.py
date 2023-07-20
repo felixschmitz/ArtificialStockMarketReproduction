@@ -26,12 +26,21 @@ def runningModel(params: dict = parameters, model: ap.Model = ASM) -> ap.DataDic
 
 
 if __name__ == "__main__":
-    # experiment_results = runningExperiment()
-    # print(experimentResults['info'])
     steps = int(parameters.get("steps"))
-    modelResults = runningModel()
+    experimentResults = runningExperiment()
 
-    # data = modelResults["variables"]["MarketStatistician"][["position"]]
+    r = str(input("Saving experiment results to file (T/F): "))
+    if "t" in r.lower():
+        experimentResults.save(
+            exp_name=f"ASM_{steps}",
+            exp_id=time.strftime("%d%m%Y-%H%M%S"),
+            path="results",
+            display=True,
+        )
+
+    # modelResults = runningModel()
+
+    """# data = modelResults["variables"]["MarketStatistician"][["position"]]
     vars = (
         ["price", "hreePrice"]
         if parameters.get("mode") == 1 or parameters.get("mode") == 2
@@ -40,9 +49,9 @@ if __name__ == "__main__":
     # ["avgForecast", "hreeForecast"]
     data = modelResults["variables"]["ArtificialStockMarket"][vars]
 
-    fig = lineplot(data)
+    fig = lineplot(data)"""
 
-    r = str(input("Saving model results to file (T/F): "))
+    """r = str(input("Saving model results to file (T/F): "))
     # r = "f"
     if "t" in r.lower():
         modelResults.save(
@@ -50,7 +59,8 @@ if __name__ == "__main__":
             exp_id=time.strftime("%d%m%Y-%H%M%S"),
             path="results",
             display=True,
-        )
+        )"""
+
     """data = modelResults["variables"]["ArtificialStockMarket"][
         ["pd", "varPriceDividend"]
     ]

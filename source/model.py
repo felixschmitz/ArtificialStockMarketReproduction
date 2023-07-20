@@ -46,9 +46,8 @@ class ArtificialStockMarket(ap.Model):
             self.record("avgWealth", np.average(self.agents.wealth))
             self.record("avgPosition", np.average(self.agents.position))
             self.record("avgBitsUsed", np.average(self.agents.log.get("bitsUsed")))
-        if self.p.mode == 1 or self.p.mode == 2:
-            self.record("hreeForecast", self.hreeForecastCalc())
-            self.hreePrice = self.hreePriceCalc()  # or here
+        self.record("hreeForecast", self.hreeForecastCalc())
+        self.hreePrice = self.hreePriceCalc()  # or here
         self.record(
             [
                 "dividend",
