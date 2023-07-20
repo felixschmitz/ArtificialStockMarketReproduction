@@ -17,7 +17,6 @@ class ArtificialStockMarket(ap.Model):
         self.theta = 1 / 75 if self.p.forecastAdaptation else 1 / 150
         self.dividend = self.p.averageDividend
         self.price = 100
-        self.hreeSlope, self.hreeIntercept = self.hreeValues()
         self.hreePrice = self.hreePriceCalc()
         self.document()
         self.worldState = self.worldInformation()
@@ -43,10 +42,13 @@ class ArtificialStockMarket(ap.Model):
         """documenting relevant variables of the model"""
         if self.t > 0:
             self.record("avgForecast", np.average(self.agents.forecast))
-            self.record("hreeForecast", self.hreeForecastCalc())
             self.record("avgDemand", np.average(self.agents.demand))
             self.record("avgWealth", np.average(self.agents.wealth))
-        self.hreePrice = self.hreePriceCalc()  # or here
+            self.record("avgPosition", np.average(self.agents.position))
+            self.record("avgBitsUsed", np.average(self.agents.log.get("bitsUsed")))
+        if self.p.mode == 1 or self.p.mode == 2:
+            self.record("hreeForecast", self.hreeForecastCalc())
+            self.hreePrice = self.hreePriceCalc()  # or here
         self.record(
             [
                 "dividend",
@@ -73,28 +75,23 @@ class ArtificialStockMarket(ap.Model):
             exp_name=exp_name, exp_id=exp_id, path=path, display=False
         )
 
-    def specialistPriceCalc(self: ap.Model) -> float:
+    def specialistPriceCalc(self: ap.Model):
         trialsSpecialist = 0
-        # p_trial = self.price
         while trialsSpecialist < self.p.trialsSpecialist:
-            # print(map(lambda x: x.round(), self.agents.demand))
-            # roundedDemand = [round(elem, 0) for elem in self.agents.demand]
-            # print(sum(roundedDemand))
             trialsSpecialist += 1
             self.agents.specialistSteps()
             sumDemand = sum(self.agents.demand)
             demandDifference = sumDemand - self.p.N
-            if abs(demandDifference) > self.p.epsilon:
-                self.price += demandDifference * np.average(self.agents.slope)
-                self.price = (
-                    self.p.minPrice
-                    if self.price < self.p.minPrice
-                    else (
-                        self.p.maxPrice if self.price > self.p.maxPrice else self.price
-                    )
-                )
-            else:
+            if abs(demandDifference) < self.p.epsilon:
                 break
+            # current price does not clear the market
+            # self.price -= demandDifference * np.average(self.agents.slope)
+            self.price += demandDifference * np.average(self.agents.slope)
+            self.price = (
+                self.p.minPrice
+                if self.price < self.p.minPrice
+                else (self.p.maxPrice if self.price > self.p.maxPrice else self.price)
+            )
 
     def dividend_process(self: ap.Model) -> float:
         """returning current dividend based on AR(1) process"""
@@ -154,22 +151,8 @@ class ArtificialStockMarket(ap.Model):
             )
         )
 
-    def hreeValues(
-        self: ap.Model,
-        a_min: float = 0.7,
-        a_max: float = 1.2,
-        b_min: float = -10,
-        b_max: float = 19.002,
-    ):
-        """Returns homogeneous rational expectations equilibrium predictor values."""
-        return (
-            self.hreeRandom.uniform(a_min, a_max),
-            self.hreeRandom.uniform(b_min, b_max),
-            # self.p.initialPredictorVariance,
-        )
-
     def hreePriceCalc(self: ap.Model) -> float:
-        """Returns homogeneous rational expectation equilibrium price."""
+        """Returns homogeneous rational expectation equilibrium price for current period."""
         f = self.p.autoregressiveParam / (
             1 + self.p.interestRate - self.p.autoregressiveParam
         )
@@ -183,10 +166,8 @@ class ArtificialStockMarket(ap.Model):
         return f * self.dividend + g
 
     def hreeForecastCalc(self: ap.Model) -> float:
-        """Returns homogeneous raional expactation equilibrium of next periods price plus dividend."""
-        return (
-            1 + self.p.interestRate
-        ) * self.price + (  # self.log.get("price")[-2] + (
+        """Returns homogeneous raional expactation equilibrium forecast of next periods price plus dividend."""
+        return (1 + self.p.interestRate) * self.price + (
             (self.p.dorra * (2 + self.p.interestRate) * self.p.errorVar)
             / (1 + self.p.interestRate - self.p.autoregressiveParam)
         )
