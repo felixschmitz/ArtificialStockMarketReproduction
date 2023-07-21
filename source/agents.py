@@ -40,7 +40,6 @@ class MarketStatistician(ap.Agent):
 
         # cash calculation with taxation based on Ehrentreich (2008) to prevent wealth explosion
         self.cash -= (self.demand - self.position) * self.model.price
-        # self.position += self.demand
         self.position = self.demand
         self.cash = self.cash + self.position * (
             self.model.dividend - self.model.p.interestRate * self.model.price
@@ -54,7 +53,7 @@ class MarketStatistician(ap.Agent):
             "bitsUsed",
             sum(
                 [
-                    12 - countOf(self.rules[rule]["condition"].values(), None)
+                    4 - [self.rules[rule]["condition"].values()][6:10].count(None)
                     for rule in self.rules
                 ]
             ),

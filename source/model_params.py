@@ -4,13 +4,13 @@ parameters = {
     "forecastAdaptation": 1,  # binary with 0 for slow/hree and 1 for fast/complex
     "mode": 0,  # with standard mode [0], diagnostics test "clamped" hree predictors [1],
     # diagnostics test hree adaptation [2], and innating rules (pre-trained rules) [3]
-    "steps": 5e1,  # num of steps/iterations by the model
+    "steps": 1e3,  # num of steps/iterations by the model
     "N": 25,  # num of agents & num of assets
     "averageDividend": 10,  # \bar{d}
     "autoregressiveParam": 0.95,  # in the paper rho
     "errorVar": 0.0743,
     "dorra": 0.5,  # degree of relative risk aversion
-    "interestRate": 0.1,
+    "interestRate": 0.1,  # in the paper r
     "C": 0.005,  # cost levied for specificity
     "initialPredictorVariance": 4.0,  # see paper,
     "M": 100,  # number of predictors per agent

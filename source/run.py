@@ -11,13 +11,10 @@ import time
 def runningExperiment(params: dict = parameters, model: ap.Model = ASM) -> ap.DataDict:
     """running an agentpy experiment with extended params"""
     expParams = params
-    expParams.update({"forecast_adaptation": ap.Values(0, 1)})
-    """expSample = ap.Sample(expParams, randomize=False)
-    exp = ap.Experiment(model, expSample, iterations=1, record=True, randomize=False)"""
+    expParams.update({"forecastAdaptation": ap.Values(0, 1)})
     expSample = ap.Sample(expParams, randomize=False)
-    exp = ap.Experiment(model, expSample, iterations=2, record=True, randomize=False)
-    # expResults = exp.run(n_jobs=-1)
-    expResults = exp.run()
+    exp = ap.Experiment(model, expSample, iterations=1, record=True, randomize=False)
+    expResults = exp.run(n_jobs=-1)
     return expResults
 
 
@@ -41,20 +38,9 @@ if __name__ == "__main__":
             display=True,
         )
 
-    # modelResults = runningModel()
-
-    """# data = modelResults["variables"]["MarketStatistician"][["position"]]
-    vars = (
-        ["price", "hreePrice"]
-        if parameters.get("mode") == 1 or parameters.get("mode") == 2
-        else ["pd", "avgForecast"]
-    )
-    # ["avgForecast", "hreeForecast"]
-    data = modelResults["variables"]["ArtificialStockMarket"][vars]
-
-    fig = lineplot(data)"""
-
-    """r = str(input("Saving model results to file (T/F): "))
+    """ 
+    modelResults = runningModel()
+    r = str(input("Saving model results to file (T/F): "))
     # r = "f"
     if "t" in r.lower():
         modelResults.save(
@@ -63,9 +49,3 @@ if __name__ == "__main__":
             path="results",
             display=True,
         )"""
-
-    """data = modelResults["variables"]["ArtificialStockMarket"][
-        ["pd", "varPriceDividend"]
-    ]
-    fig = errLineplot(data=data, y="pd", err="varPriceDividend")"""
-    plt.show()
