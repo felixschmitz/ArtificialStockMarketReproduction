@@ -46,6 +46,7 @@ class ArtificialStockMarket(ap.Model):
             self.record("avgWealth", np.average(self.agents.wealth))
             self.record("avgPosition", np.average(self.agents.position))
             self.record("avgBitsUsed", np.average(self.agents.log.get("bitsUsed")))
+        self.hreePrice = self.hreePriceCalc()
         self.record("hreeForecast", self.hreeForecastCalc())
         self.hreePrice = self.hreePriceCalc()  # or here
         self.record(
@@ -166,7 +167,7 @@ class ArtificialStockMarket(ap.Model):
 
     def hreeForecastCalc(self: ap.Model) -> float:
         """Returns homogeneous raional expactation equilibrium forecast of next periods price plus dividend."""
-        return (1 + self.p.interestRate) * self.price + (
+        return (1 + self.p.interestRate) * self.hreePrice + (
             (self.p.dorra * (2 + self.p.interestRate) * self.p.errorVar)
             / (1 + self.p.interestRate - self.p.autoregressiveParam)
         )
