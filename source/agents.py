@@ -53,7 +53,10 @@ class MarketStatistician(ap.Agent):
             "bitsUsed",
             sum(
                 [
-                    4 - [self.rules[rule]["condition"].values()][6:10].count(None)
+                    4
+                    - [
+                        self.rules[rule]["condition"].get(i) for i in range(7, 11)
+                    ].count(None)
                     for rule in self.rules
                 ]
             ),
@@ -65,12 +68,23 @@ class MarketStatistician(ap.Agent):
     def initializeRules(self: ap.Agent, numRules: int) -> dict:
         """initializing dict of rules with respective predictive bitstring rules"""
         if self.model.p.mode == 3 and self.model.t == 0:
-            d = literal_eval(
-                self.model.importedDataDict["variables"]["MarketStatistician"]
-                .loc[self.id]
-                .iloc[-1]
-                .rules
-            )
+            if self.model._run_id[0] != None:
+                # importing rules from pre-trained model for each type of forecastAdaptation (experiment)
+                d = literal_eval(
+                    self.model.importedDataDict["variables"]["MarketStatistician"]
+                    .loc[self.model._run_id[0]]
+                    .loc[self.id]
+                    .iloc[-1]
+                    .rules
+                )
+            else:
+                # importing rules from pre-trained model (single model)
+                d = literal_eval(
+                    self.model.importedDataDict["variables"]["MarketStatistician"]
+                    .loc[self.id]
+                    .iloc[-1]
+                    .rules
+                )
         else:
             d = {}
             for i in range(1, numRules + 1):

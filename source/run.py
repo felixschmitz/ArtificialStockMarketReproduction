@@ -38,7 +38,7 @@ if __name__ == "__main__":
             display=True,
         )
 
-    """ 
+    """
     modelResults = runningModel()
     r = str(input("Saving model results to file (T/F): "))
     # r = "f"
