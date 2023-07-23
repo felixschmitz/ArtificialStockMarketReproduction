@@ -31,7 +31,6 @@ class ArtificialStockMarket(ap.Model):
         """model centered timeline followed at each timestep"""
         self.dividend = self.dividend_process()
         self.worldState = self.worldInformation()
-        # self.hreePrice = self.hreePriceCalc() # here
         self.agents.step()  # activating world state matching predictors
         self.specialistPriceCalc()
         self.agents.update()
@@ -46,9 +45,9 @@ class ArtificialStockMarket(ap.Model):
             self.record("avgWealth", np.average(self.agents.wealth))
             self.record("avgPosition", np.average(self.agents.position))
             self.record("avgBitsUsed", np.average(self.agents.log.get("bitsUsed")))
+            self.record("avgUtility", np.average(self.agents.log.get("utility")))
         self.hreePrice = self.hreePriceCalc()
         self.record("hreeForecast", self.hreeForecastCalc())
-        self.hreePrice = self.hreePriceCalc()  # or here
         self.record(
             [
                 "dividend",

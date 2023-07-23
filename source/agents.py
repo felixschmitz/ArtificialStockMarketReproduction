@@ -16,6 +16,7 @@ class MarketStatistician(ap.Agent):
         self.wealth = self.cash + self.position * self.model.price
         self.demand = 1
         self.slope = 0
+        self.utility = self.utilityCalc()
 
     def step(self: ap.Agent):
         """agent centered timeline followed at each timestep"""
@@ -37,6 +38,8 @@ class MarketStatistician(ap.Agent):
         )
         if gACondition:
             self.geneticAlgorithm()
+
+        self.utility = self.utilityCalc()
 
         # cash calculation with taxation based on Ehrentreich (2008) to prevent wealth explosion
         self.cash -= (self.demand - self.position) * self.model.price
@@ -61,7 +64,7 @@ class MarketStatistician(ap.Agent):
                 ]
             ),
         )
-        self.record(["forecast", "demand", "cash", "wealth", "position"])
+        self.record(["forecast", "demand", "cash", "wealth", "position", "utility"])
         if self.model.t == self.model.p.steps:
             self.record(["rules"])
 
@@ -164,6 +167,10 @@ class MarketStatistician(ap.Agent):
                 ),  # self.model.p.initialPredictorVariance,
             }
         return currentRuleKey, activeRuleKeys
+
+    def utilityCalc(self: ap.Agent) -> float:
+        """calculating the utility of the agent"""
+        return -(np.exp(-self.model.p.dorra * (self.demand - self.position)))
 
     def expectationFormation(self: ap.Agent) -> float:
         """returning combined expected price plus dividend based on activated rule"""
