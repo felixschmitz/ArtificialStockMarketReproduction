@@ -48,7 +48,6 @@ class MarketStatistician(ap.Agent):
             self.model.dividend - self.model.p.interestRate * self.model.price
         )
         self.wealth = self.cash + self.position * self.model.price
-        # utility update?
 
     def document(self: ap.Agent):
         """documenting relevant variables of agents"""
@@ -65,8 +64,11 @@ class MarketStatistician(ap.Agent):
             ),
         )
         self.record(["forecast", "demand", "cash", "wealth", "position", "utility"])
-        if self.model.t == self.model.p.steps:
-            self.record(["rules"])
+        """if self.model.t == self.model.p.steps:
+            self.record(["rules"])"""
+
+    def end(self: ap.Agent):
+        self.record(["rules"])
 
     def initializeRules(self: ap.Agent, numRules: int) -> dict:
         """initializing dict of rules with respective predictive bitstring rules"""

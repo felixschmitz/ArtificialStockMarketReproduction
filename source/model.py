@@ -66,6 +66,9 @@ class ArtificialStockMarket(ap.Model):
             np.array(self.log.get("dividend") + np.array(self.log.get("price")))
         )
 
+    def end(self: ap.Model):
+        self.agents.end()
+
     def readDataDict(self: ap.Agent, dataDictPath: str) -> dict:
         """reading data from dict"""
         exp_name, exp_id = dataDictPath.rsplit("_", 1)
