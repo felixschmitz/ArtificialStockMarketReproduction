@@ -20,7 +20,6 @@ class MarketStatistician(ap.Agent):
 
     def step(self: ap.Agent):
         """agent centered timeline followed at each timestep"""
-        self.prevForecast = self.forecast
         self.prevActiveRules = self.activeRules.copy()
         self.currentRule, self.activeRules = self.activateRules()
 
@@ -31,7 +30,10 @@ class MarketStatistician(ap.Agent):
     def update(self: ap.Agent):
         """updating central variables of agents"""
         self.errorVarianceUpdate()
-        self.gARandom = self.model.randomGenerator()
+        self.prevForecastUpdate()
+        self.gARandom = (
+            self.model.randomGenerator()
+        )  # should the random generators be initialized during setup?
         gARandInt = self.gARandom.integers(1000)
         gACondition = ((self.model.p.forecastAdaptation) & (gARandInt < 4)) | (
             (not self.model.p.forecastAdaptation) & (gARandInt == 0)
@@ -64,8 +66,6 @@ class MarketStatistician(ap.Agent):
             ),
         )
         self.record(["forecast", "demand", "cash", "wealth", "position", "utility"])
-        """if self.model.t == self.model.p.steps:
-            self.record(["rules"])"""
 
     def end(self: ap.Agent):
         self.record(["rules"])
@@ -82,6 +82,12 @@ class MarketStatistician(ap.Agent):
                     .iloc[-1]
                     .rules
                 )
+                pt, dt = (
+                    self.model.importedDataDict["variables"]["ArtificialStockMarket"]
+                    .loc[self.model._run_id[0]]
+                    .iloc[-1][["price", "dividend"]]
+                )
+                self.addPrevForecast(d, pt, dt)
             else:
                 # importing rules from pre-trained model (single model)
                 d = literal_eval(
@@ -95,6 +101,12 @@ class MarketStatistician(ap.Agent):
             for i in range(1, numRules + 1):
                 d[i] = self.createRule()
         return d
+
+    def addPrevForecast(self: ap.Agent, d: dict, pt: float, dt: float):
+        for predictor in d:
+            d[predictor]["prevForecast"] = (
+                d[predictor]["a"] * (pt + dt) + d[predictor]["b"]
+            )
 
     def createRule(self: ap.Agent) -> dict:
         """creating dict of predictive bitstring rule with respective predictor and observatory meassures"""
@@ -117,6 +129,7 @@ class MarketStatistician(ap.Agent):
             "fitness": self.model.p.M,
             "accuracy": self.model.p.initialPredictorVariance,
             "errorVariance": self.model.p.initialPredictorVariance,
+            "prevForecast": 110,
         }
 
     def activateRules(self: ap.Agent) -> tuple[int, list]:
@@ -180,10 +193,10 @@ class MarketStatistician(ap.Agent):
             self.model.price + self.model.dividend
         ) + self.rules.get(self.currentRule).get("b")
 
-    def previousExpectationFormation(self: ap.Agent, ruleID: int) -> float:
+    def prevExpectationFormation(self: ap.Agent, ruleID: int) -> float:
         """returning combined expected price plus dividend based on activated rule"""
         return self.rules.get(ruleID).get("a") * (
-            self.model.log.get("price") + self.model.log.get("dividend")
+            self.model.price + self.model.dividend
         ) + self.rules.get(ruleID).get("b")
 
     def demandAndSlopeCalc(self: ap.Agent) -> float:
@@ -199,14 +212,12 @@ class MarketStatistician(ap.Agent):
 
     def constrainDemand(self: ap.Agent, demand: float) -> float:
         """constraining the demand to the maximum bid and the minimum holding"""
-        if (demand > 0) & (
-            (demand * self.model.price) > (self.cash - self.model.p.minCash)
-        ):
-            if self.cash - self.model.p.minCash > 0:
-                demand = (self.cash - self.model.p.minCash) / self.model.price
+        if (demand > 0) & ((demand * self.model.price) > (self.cash)):
+            if self.cash > 0:
+                demand = (self.cash) / self.model.price
             else:
                 demand = 0
-        elif (demand < 0) & (demand < self.model.p.minHolding):
+        elif (demand < 0) & (demand + self.position < self.model.p.minHolding):
             demand = self.model.p.minHolding
         return demand
 
@@ -217,9 +228,19 @@ class MarketStatistician(ap.Agent):
                 self.rules[ruleID]["errorVariance"] = (
                     1 - self.model.theta
                 ) * self.rules[ruleID]["errorVariance"] + self.model.theta * math.pow(
-                    self.model.price + self.model.dividend - self.prevForecast, 2
+                    self.model.price
+                    + self.model.dividend
+                    - self.rules[ruleID]["prevForecast"],
+                    2,
                 )
-                self.rules[ruleID]["activationIndicator"] = 0
+
+    def prevForecastUpdate(self: ap.Agent) -> None:
+        """updating the previous forecast of the predictors"""
+        for ruleID in self.activeRules:
+            if ruleID != 0:
+                self.rules[ruleID]["prevForecast"] = self.prevExpectationFormation(
+                    ruleID=ruleID
+                )
 
     def crossoverRule(
         self: ap.Agent, ruleID: int, parentRuleID1: int, parentRuleID2: int
@@ -296,7 +317,8 @@ class MarketStatistician(ap.Agent):
         self.rules[ruleID]["fitness"] = (
             # self.model.p.M - self.rules[ruleID]["accuracy"] - (self.model.p.C * s)
             1e9
-            - self.rules[ruleID]["accuracy"]
+            # - self.rules[ruleID]["accuracy"]
+            - self.rules[ruleID]["errorVariance"]
             - (self.model.p.C * s)
         )
 
@@ -327,7 +349,9 @@ class MarketStatistician(ap.Agent):
                 crossoverRandInt = self.gARandom.integers(100)
                 crossoverCondition = (
                     (self.model.p.forecastAdaptation) & (crossoverRandInt < 30)
-                ) | ((not self.model.p.forecastAdaptation) & (crossoverRandInt < 10))
+                ) | (
+                    (not self.model.p.forecastAdaptation) & (crossoverRandInt < 10)
+                )  # see page 13?
                 # crossover takes place with probability 0.3 in the fast adaptation case
                 # and 0.1 in the slow adaptation case
                 if crossoverCondition:

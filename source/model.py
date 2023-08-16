@@ -46,6 +46,7 @@ class ArtificialStockMarket(ap.Model):
             self.record("avgPosition", np.average(self.agents.position))
             self.record("avgBitsUsed", np.average(self.agents.log.get("bitsUsed")))
             self.record("avgUtility", np.average(self.agents.log.get("utility")))
+            self.record("anayliticalMarketClearingPrice", self.marketClearingPrice())
         self.hreePrice = self.hreePriceCalc()
         self.record("hreeForecast", self.hreeForecastCalc())
         self.record(
@@ -86,14 +87,18 @@ class ArtificialStockMarket(ap.Model):
             demandDifference = sumDemand - self.p.N
             if abs(demandDifference) < self.p.epsilon:
                 break
-            # current price does not clear the market
-            # self.price -= demandDifference * np.average(self.agents.slope)
             self.price += demandDifference * np.average(self.agents.slope)
+            # self.price += demandDifference * sum(self.agents.slope)
+            print(
+                f"Model time step {self.t}, Specialist iteration: {trialsSpecialist}, Specialist price: {self.price}, Agents position: {self.agents.position}"
+            )
             self.price = (
                 self.p.minPrice
                 if self.price < self.p.minPrice
                 else (self.p.maxPrice if self.price > self.p.maxPrice else self.price)
             )
+        # self.price = self.p.hreeA * self.dividend + self.p.hreeB
+        # self.agents.specialistSteps()
 
     def dividend_process(self: ap.Model) -> float:
         """returning current dividend based on AR(1) process"""
@@ -170,6 +175,6 @@ class ArtificialStockMarket(ap.Model):
     def hreeForecastCalc(self: ap.Model) -> float:
         """Returns homogeneous raional expactation equilibrium forecast of next periods price plus dividend."""
         return (1 + self.p.interestRate) * self.hreePrice + (
-            (self.p.dorra * (2 + self.p.interestRate) * self.p.errorVar)
+            (self.p.dorra * (1 + self.p.interestRate) * self.p.errorVar)
             / (1 + self.p.interestRate - self.p.autoregressiveParam)
         )
