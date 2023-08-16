@@ -88,17 +88,11 @@ class ArtificialStockMarket(ap.Model):
             if abs(demandDifference) < self.p.epsilon:
                 break
             self.price += demandDifference * np.average(self.agents.slope)
-            # self.price += demandDifference * sum(self.agents.slope)
-            print(
-                f"Model time step {self.t}, Specialist iteration: {trialsSpecialist}, Specialist price: {self.price}, Agents position: {self.agents.position}"
-            )
             self.price = (
                 self.p.minPrice
                 if self.price < self.p.minPrice
                 else (self.p.maxPrice if self.price > self.p.maxPrice else self.price)
             )
-        # self.price = self.p.hreeA * self.dividend + self.p.hreeB
-        # self.agents.specialistSteps()
 
     def dividend_process(self: ap.Model) -> float:
         """returning current dividend based on AR(1) process"""
