@@ -319,11 +319,7 @@ class MarketStatistician(ap.Agent):
         self.rules[ruleID]["accuracy"] = self.rules[ruleID]["errorVariance"]
         s = sum(value != None for value in self.rules[ruleID]["condition"].values())
         self.rules[ruleID]["fitness"] = (
-            # self.model.p.M - self.rules[ruleID]["accuracy"] - (self.model.p.C * s)
-            1e9
-            # - self.rules[ruleID]["accuracy"]
-            - self.rules[ruleID]["errorVariance"]
-            - (self.model.p.C * s)
+            1e9 - self.rules[ruleID]["errorVariance"] - (self.model.p.C * s)
         )
 
     def geneticAlgorithm(self: ap.Agent):
@@ -346,7 +342,7 @@ class MarketStatistician(ap.Agent):
         for ruleID in self.rules.keys():
             if ruleID != 0:
                 self.geneticAlgorithmPreparation(ruleID=ruleID)
-            if ruleID in rulesToBeReplaced:
+            if ruleID in rulesToBeReplaced and self.model.p.mode != 1:
                 # initializing new rule
                 self.rules[ruleID] = self.createRule()
 
