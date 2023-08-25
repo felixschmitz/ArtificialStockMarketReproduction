@@ -14,8 +14,7 @@ class MarketStatistician(ap.Agent):
         self.forecast = self.expectationFormation()
         self.position = 1
         self.wealth = self.cash + self.position * self.model.price
-        self.demand = 1
-        self.slope = 0
+        self.demand, self.slope = self.demandAndSlopeCalc()
         self.utility = self.utilityCalc()
 
     def step(self: ap.Agent):
@@ -204,14 +203,19 @@ class MarketStatistician(ap.Agent):
         demand = (
             self.forecast - self.model.price * (1 + self.model.p.interestRate)
         ) / (self.model.p.dorra * self.rules.get(self.currentRule).get("accuracy"))
-        slope = self.rules.get(self.currentRule).get("a") - (
-            1 + self.model.p.interestRate
+        slope = (
+            self.rules.get(self.currentRule).get("a") - (1 + self.model.p.interestRate)
         ) / (self.model.p.dorra * self.rules.get(self.currentRule).get("accuracy"))
         demand = self.constrainDemand(demand)
         return demand, slope
 
     def constrainDemand(self: ap.Agent, demand: float) -> float:
         """constraining the demand to the maximum bid and the minimum holding"""
+        consumption = demand - self.position
+        if consumption > self.model.p.maxBid:
+            demand = self.model.p.maxBid + self.position
+        elif consumption < -self.model.p.maxBid:
+            demand = -self.model.p.maxBid + self.position
         if (demand > 0) & ((demand * self.model.price) > (self.cash)):
             if self.cash > 0:
                 demand = (self.cash) / self.model.price
