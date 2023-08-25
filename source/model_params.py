@@ -18,7 +18,6 @@ parameters = {
     "minCash": 0,  # minimum cash of each agent in the bank
     "epsilon": 1e-2,  # maximum deviation in specialist's market clearing
     "trialsSpecialist": 10,  # trials per timestep for market clearing
-    # "specialistType": 1,  # 0: ration expectations, 1: slope, 2: fixed ETA; default: 1
     "maxBid": 10,  # maximum bid of each agent to the risky-asset
     "minPrice": 0.01,  # minimum price for market clearing
     "maxPrice": 500,  # maximum price for market clearing
