@@ -85,10 +85,14 @@ class ArtificialStockMarket(ap.Model):
             trialsSpecialist += 1
             self.agents.specialistSteps()
             sumDemand = sum(self.agents.demand)
+            sumSlope = sum(self.agents.slope)
             demandDifference = sumDemand - self.p.N
             if abs(demandDifference) < self.p.epsilon:
                 break
-            self.price += demandDifference * np.average(self.agents.slope)
+            if sumSlope != 0:
+                self.price -= demandDifference / sumSlope
+            else:
+                self.price *= 1 + 0.0005 * demandDifference
             self.price = (
                 self.p.minPrice
                 if self.price < self.p.minPrice
