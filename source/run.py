@@ -24,7 +24,7 @@ def runningSplitExperiment(
     params: dict = parameters, model: ap.Model = ASM
 ) -> ap.DataDict:
     """running an agentpy experiment with extended params in batches"""
-    stepsize = int(5e4)
+    stepsize = math.ceil(params.get("steps") / 5)
     expParams = params
     expParams.update({"forecastAdaptation": ap.Values(0, 1)})
     batches = math.ceil(params.get("steps") / stepsize)
@@ -79,9 +79,7 @@ def runningModel(params: dict = parameters, model: ap.Model = ASM) -> ap.DataDic
 if __name__ == "__main__":
     steps = int(parameters.get("steps"))
     experimentResults = runningSplitExperiment()
-    """
-    experimentResults = runningExperiment()
-    """
+    # experimentResults = runningExperiment()
     r = str(input("Saving experiment results to file (T/F): "))
     if "t" in r.lower():
         experimentResults.save(
@@ -94,11 +92,11 @@ if __name__ == "__main__":
     """
     modelResults = runningModel()
     r = str(input("Saving model results to file (T/F): "))
-    # r = "f"
     if "t" in r.lower():
         modelResults.save(
             exp_name=f"ASM_{steps}",
             exp_id=datetime.now().strftime("%d%m%Y-%H%M%S"),
             path="results",
             display=True,
-        )"""
+        )
+    """
