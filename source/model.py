@@ -16,8 +16,9 @@ class ArtificialStockMarket(ap.Model):
         self.dividendRandom = self.randomGenerator()
         self.theta = 1 / 75 if self.p.forecastAdaptation else 1 / 150
         self.dividend = self.p.averageDividend
-        self.price = 100
+        self.price = 80
         self.hreePrice = self.hreePriceCalc()
+        self.f, self.g = self.p.hreeA, self.p.hreeB
         self.document()
         self.worldState = self.worldInformation()
         self.agents = ap.AgentList(self, self.p.N, MS)
@@ -154,7 +155,7 @@ class ArtificialStockMarket(ap.Model):
 
     def hreePriceCalc(self: ap.Model) -> float:
         """Returns homogeneous rational expectation equilibrium price for current period."""
-        f = self.p.autoregressiveParam / (
+        """f = self.p.autoregressiveParam / (
             1 + self.p.interestRate - self.p.autoregressiveParam
         )
         g = (
@@ -164,11 +165,20 @@ class ArtificialStockMarket(ap.Model):
                 - self.p.dorra * self.p.errorVar
             )
         ) / self.p.interestRate
-        return f * self.dividend + g
+        return f * self.dividend + g"""
+        self.f = self.p.autoregressiveParam / (
+            1 + self.p.interestRate - self.p.autoregressiveParam
+        )
+        self.g = (
+            (1 + self.f) * (1 - self.p.autoregressiveParam) * self.p.averageDividend
+            - self.p.dorra * (math.pow(1 + self.f, 2)) * self.p.errorVar
+        ) / self.p.interestRate
+        return self.f * self.dividend + self.g
 
     def hreeForecastCalc(self: ap.Model) -> float:
         """Returns homogeneous raional expactation equilibrium forecast of next periods price plus dividend."""
-        return (1 + self.p.interestRate) * self.hreePrice + (
+        """return (1 + self.p.interestRate) * self.hreePrice + (
             (self.p.dorra * (1 + self.p.interestRate) * self.p.errorVar)
             / (1 + self.p.interestRate - self.p.autoregressiveParam)
-        )
+        )"""
+        return self.p.hreeA * (self.dividend + self.price) + self.p.hreeB
