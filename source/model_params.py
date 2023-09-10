@@ -1,5 +1,6 @@
 parameters = {
     "experimentSplit": 1,  # binary with 0 for no split and 1 for split
+    "batches": 25,  # number of batches for split experiment
     "importPath": r"results/ASM_50000_30082023-133915",  # path to innate rules
     "seed": 42,  # seed for random number generator
     "forecastAdaptation": 0,  # binary with 0 for slow/hree and 1 for fast/complex

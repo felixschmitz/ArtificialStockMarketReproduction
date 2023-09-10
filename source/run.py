@@ -24,7 +24,7 @@ def runningSplitExperiment(
     params: dict = parameters, model: ap.Model = ASM
 ) -> ap.DataDict:
     """running an agentpy experiment with extended params in batches"""
-    stepsize = math.ceil(params.get("steps") / 25)
+    stepsize = math.ceil(params.get("steps") / params.get("batches"))
     expParams = params
     expParams.update({"forecastAdaptation": ap.Values(0, 1)})
     batches = math.ceil(params.get("steps") / stepsize)
