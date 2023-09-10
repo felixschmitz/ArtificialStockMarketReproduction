@@ -185,4 +185,5 @@ class ArtificialStockMarket(ap.Model):
             (self.p.dorra * (1 + self.p.interestRate) * self.p.errorVar)
             / (1 + self.p.interestRate - self.p.autoregressiveParam)
         )"""
-        return self.p.hreeA * (self.dividend + self.price) + self.p.hreeB
+        # return self.p.hreeA * (self.dividend + self.price) + self.p.hreeB
+        return self.p.hreeA * (self.dividend + self.hreePrice) + self.p.hreeB
