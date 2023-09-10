@@ -44,10 +44,10 @@ class MarketStatistician(ap.Agent):
 
         # cash calculation with taxation based on Ehrentreich (2008) to prevent wealth explosion
         self.cash -= (self.demand - self.position) * self.model.price
-        self.position = self.demand
         self.cash = self.cash + self.position * (
             self.model.dividend - self.model.p.interestRate * self.model.price
         )
+        self.position = self.demand
         self.wealth = self.cash + self.position * self.model.price
 
     def document(self: ap.Agent):
