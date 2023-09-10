@@ -251,7 +251,7 @@ class MarketStatistician(ap.Agent):
     ) -> dict:
         """crossover of two parent rules"""
         self.crossoverRandom = self.model.randomGenerator()
-        # crossover on bitstring level
+        # uniform crossover on bitstring level
         constantConditions = {11: 1, 12: 0}
         variableConditions = {
             idx + 1: (self.rules[parentID]["condition"][idx + 1])

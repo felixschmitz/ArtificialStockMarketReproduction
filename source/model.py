@@ -129,7 +129,7 @@ class ArtificialStockMarket(ap.Model):
         return np.average(self.log.get("price")[-periodMA:])
 
     def marketClearingPrice(self: ap.Model):
-        """Returns inductive market clearing price."""
+        """Returns inductive market clearing price. Delete?"""
         return (
             sum(
                 [
