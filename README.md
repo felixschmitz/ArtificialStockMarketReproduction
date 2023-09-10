@@ -35,4 +35,4 @@ The model parameters are specified in `model_params.py`. The main parameters are
 The model output is saved in the `results` folder either in batches or as one directory depending on the `experimentSplit` parameter.
 
 ## Model Reproduction
-The model can be reproduced by reproducing the conda env from the `SFI-ASM.yml` and executing `run.py` which takes the parameters specified in `model_params.py`. One `ap.Model` object gets initilized as `ArtificialStockMarket` and contains the global artificial market specific procedures. Within this `ArtificialStockMarket`, `ap.Agent` objects get initialized as `MarketStatistician` and contain the agent specific procedures.
+The model can be reproduced by reproducing the conda env from the `req.yml` and executing `run.py` which takes the parameters specified in `model_params.py`. One `ap.Model` object gets initilized as `ArtificialStockMarket` and contains the global artificial market specific procedures. Within this `ArtificialStockMarket`, `ap.Agent` objects get initialized as `MarketStatistician` and contain the agent specific procedures.
