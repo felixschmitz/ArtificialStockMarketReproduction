@@ -1,10 +1,8 @@
 from model_params import parameters
 from model import ArtificialStockMarket as ASM
 from agents import MarketStatistician as MS
-from viz_helper import lineplot, errLineplot
 
 import agentpy as ap
-import matplotlib.pyplot as plt
 import glob
 from datetime import datetime
 import math
@@ -31,6 +29,7 @@ def runningSplitExperiment(
     for batch in range(batches):
         print(f"Batch {batch+1} of {batches}")
         if batch != 0:
+            # all batches except the first one innate the rules from the previous experiment
             importPath = getLatestExperimentPath()
             expParams.update({"importPath": importPath})
         expParams.update(
@@ -46,6 +45,7 @@ def runningSplitExperiment(
         )
         expResults = exp.run(n_jobs=-1)
         if batch != batches - 1:
+            # all batches except the last one save the results to file with their batch size step size
             expResults.save(
                 exp_name=f"ASM_{stepsize}",
                 exp_id=datetime.now().strftime("%d%m%Y-%H%M%S"),
@@ -53,6 +53,7 @@ def runningSplitExperiment(
                 display=True,
             )
         else:
+            # the last batch results get returned
             return expResults
 
 

@@ -10,18 +10,28 @@ np.seterr("raise")
 class ArtificialStockMarket(ap.Model):
     def setup(self: ap.Model):
         """setup function initializing and declaring class specific variables"""
-        if self.p.mode > 1:
+        if self.p.mode == 3:
+            # importing data from previous experiment based on specified path
             self.importedDataDict = self.readDataDict(dataDictPath=self.p.importPath)
-        self.hreeRandom = self.randomGenerator()
-        self.dividendRandom = self.randomGenerator()
-        self.theta = 1 / 75 if self.p.forecastAdaptation else 1 / 150
-        self.dividend = self.p.averageDividend
-        self.price = 80
-        self.hreePrice = self.hreePriceCalc()
-        self.f, self.g = self.p.hreeA, self.p.hreeB
+        self.hreeRandom = (
+            self.randomGenerator()
+        )  # initializing random generator for h.r.e.e. processes
+        self.dividendRandom = (
+            self.randomGenerator()
+        )  # initializing random generator for dividend process
+        self.theta = (
+            1 / 75 if self.p.forecastAdaptation else 1 / 150
+        )  # specifying theta for given regimes based on forecastAdaptation
+        self.dividend = self.p.averageDividend  # calculating initial dividend value
+        self.price = 80  # specifying initial price value
+        self.hreePrice = (
+            self.hreePriceCalc()
+        )  # calculating initial h.r.e.e. price value
         self.document()
-        self.worldState = self.worldInformation()
-        self.agents = ap.AgentList(self, self.p.N, MS)
+        self.worldState = (
+            self.worldInformation()
+        )  # observing state of the world based on fundamental, technical, and constant conditions
+        self.agents = ap.AgentList(self, self.p.N, MS)  # initializing agents
 
     def randomGenerator(self: ap.Model) -> np.random.Generator:
         """returning a random generator"""
@@ -30,17 +40,22 @@ class ArtificialStockMarket(ap.Model):
 
     def step(self: ap.Model):
         """model centered timeline followed at each timestep"""
-        self.dividend = self.dividend_process()
-        self.worldState = self.worldInformation()
-        self.agents.step()  # activating world state matching predictors
-        self.specialistPriceCalc()
-        self.agents.update()
-        self.agents.document()
-        self.document()
+        self.dividend = (
+            self.dividend_process()
+        )  # calculating dividend for current period
+        self.worldState = (
+            self.worldInformation()
+        )  # observing state of the world based on fundamental, technical, and constant conditions
+        self.agents.step()  # activating world state matching predictors of agents
+        self.specialistPriceCalc()  # iterative specialist price determination for current period
+        self.agents.update()  # updating agent specific variables
+        self.agents.document()  # documenting agent specific variables
+        self.document()  # documenting model specific variables
 
     def document(self: ap.Model):
         """documenting relevant variables of the model"""
         if self.t > 0:
+            # documenting variables for all timesteps except the first one
             self.record("avgForecast", np.average(self.agents.forecast))
             self.record("avgDemand", np.average(self.agents.demand))
             self.record("avgWealth", np.average(self.agents.wealth))
@@ -63,8 +78,9 @@ class ArtificialStockMarket(ap.Model):
                         for sublist in self.agents.log.get("position")
                     ),
                 )
-            self.record("anayliticalMarketClearingPrice", self.marketClearingPrice())
-        self.hreePrice = self.hreePriceCalc()
+        self.hreePrice = (
+            self.hreePriceCalc()
+        )  # calculating h.r.e.e. price for current period
         self.record("hreeForecast", self.hreeForecastCalc())
         self.record(
             [
@@ -80,15 +96,17 @@ class ArtificialStockMarket(ap.Model):
 
     def update(self: ap.Model):
         """updating central variables of the model"""
+        # updating variance of price plus dividend up until current period
         self.varPriceDividend = np.var(
             np.array(self.log.get("dividend") + np.array(self.log.get("price")))
         )
 
     def end(self: ap.Model):
+        """end function for model"""
         self.agents.end()
 
     def readDataDict(self: ap.Agent, dataDictPath: str) -> dict:
-        """reading data from dict"""
+        """reading data from dict of previous experiment"""
         exp_name, exp_id = dataDictPath.rsplit("_", 1)
         path, exp_name = exp_name.rsplit("/", 1)
         return ap.DataDict.load(
@@ -99,16 +117,24 @@ class ArtificialStockMarket(ap.Model):
         trialsSpecialist = 0
         while trialsSpecialist < self.p.trialsSpecialist:
             trialsSpecialist += 1
-            self.agents.specialistSteps()
-            sumDemand = sum(self.agents.demand)
-            sumSlope = sum(self.agents.slope)
-            demandDifference = sumDemand - self.p.N
+            self.agents.specialistSteps()  # activating specialist steps of agents
+            sumDemand = sum(
+                self.agents.demand
+            )  # calculating sum of demand of all agents
+            sumSlope = sum(self.agents.slope)  # calculating sum of slope of all agents
+            demandDifference = (
+                sumDemand - self.p.N
+            )  # calculating difference between sum of demand and number of shares of the asset
             if abs(demandDifference) < self.p.epsilon:
+                # if difference between sum of demand and number of shares of the asset is smaller than epsilon, break
                 break
             if sumSlope != 0:
+                # if sum of slope is not zero, update price based on demandDifference and sum of slope
                 self.price -= demandDifference / sumSlope
             else:
+                # if sum of slope is zero, update price based on the demandDifference and a factor
                 self.price *= 1 + 0.0005 * demandDifference
+            # if price is smaller than minPrice, set price to minPrice, if price is larger than maxPrice, set price to maxPrice, else keep price
             self.price = (
                 self.p.minPrice
                 if self.price < self.p.minPrice
@@ -118,6 +144,7 @@ class ArtificialStockMarket(ap.Model):
     def dividend_process(self: ap.Model) -> float:
         """returning current dividend based on AR(1) process"""
         errorTerm = self.dividendRandom.normal(0, math.sqrt(self.p.errorVar))
+        # calculating the dividend based on AR(1) process specified in the paper
         return (
             self.p.averageDividend
             + self.p.autoregressiveParam * (self.dividend - self.p.averageDividend)
@@ -144,48 +171,8 @@ class ArtificialStockMarket(ap.Model):
         """returning the moving average for a certain period (input)"""
         return np.average(self.log.get("price")[-periodMA:])
 
-    def marketClearingPrice(self: ap.Model):
-        """Returns inductive market clearing price. Delete?"""
-        return (
-            sum(
-                [
-                    (
-                        self.dividend * agent.rules.get(agent.currentRule).get("a")
-                        + agent.rules.get(agent.currentRule).get("b")
-                    )
-                    / agent.rules.get(agent.currentRule).get("accuracy")
-                    for agent in self.agents
-                ]
-            )
-            - self.p.N * self.p.dorra
-        ) / (
-            sum(
-                [
-                    (
-                        (
-                            (1 + self.p.interestRate)
-                            - agent.rules.get(agent.currentRule).get("a")
-                        )
-                        / agent.rules.get(agent.currentRule).get("accuracy")
-                    )
-                    for agent in self.agents
-                ]
-            )
-        )
-
     def hreePriceCalc(self: ap.Model) -> float:
-        """Returns homogeneous rational expectation equilibrium price for current period."""
-        """f = self.p.autoregressiveParam / (
-            1 + self.p.interestRate - self.p.autoregressiveParam
-        )
-        g = (
-            (1 + f)
-            * (
-                (1 - self.p.autoregressiveParam) * self.p.averageDividend
-                - self.p.dorra * self.p.errorVar
-            )
-        ) / self.p.interestRate
-        return f * self.dividend + g"""
+        """Returns h.r.e.e. price for current period. Formula is based on Ehrentreich2008 p.102f."""
         self.f = self.p.autoregressiveParam / (
             1 + self.p.interestRate - self.p.autoregressiveParam
         )
@@ -196,10 +183,5 @@ class ArtificialStockMarket(ap.Model):
         return self.f * self.dividend + self.g
 
     def hreeForecastCalc(self: ap.Model) -> float:
-        """Returns homogeneous raional expactation equilibrium forecast of next periods price plus dividend."""
-        """return (1 + self.p.interestRate) * self.hreePrice + (
-            (self.p.dorra * (1 + self.p.interestRate) * self.p.errorVar)
-            / (1 + self.p.interestRate - self.p.autoregressiveParam)
-        )"""
-        # return self.p.hreeA * (self.dividend + self.price) + self.p.hreeB
+        """Returns h.r.e.e. forecast of next periods price plus dividend."""
         return self.p.hreeA * (self.dividend + self.hreePrice) + self.p.hreeB

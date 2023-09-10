@@ -1,6 +1,5 @@
 import agentpy as ap
 import numpy as np
-from operator import countOf
 import math
 from ast import literal_eval
 
@@ -8,31 +7,61 @@ from ast import literal_eval
 class MarketStatistician(ap.Agent):
     def setup(self):
         """setup function initializing and declaring class specific variables"""
-        self.cash = self.model.p.initialCash
-        self.rules = self.initializeRules(numRules=self.model.p.M)
-        self.currentRule, self.activeRules = self.activateRules()
-        self.forecast = self.expectationFormation()
-        self.position = 1
-        self.wealth = self.cash + self.position * self.model.price
-        self.demand, self.slope = self.demandAndSlopeCalc()
-        self.utility = self.utilityCalc()
+        self.cash = self.model.p.initialCash  # cash of the agent
+        self.rules = self.initializeRules(
+            numRules=self.model.p.M
+        )  # initializing set of rules for the agent
+        (
+            self.currentRule,
+            self.activeRules,
+        ) = (
+            self.activateRules()
+        )  # activating rules matching the worldState and selecting the current rule
+        self.forecast = self.expectationFormation(
+            ruleID=self.currentRule
+        )  # calculating the forecast based on the current rule
+        self.position = 1  # position of the agent
+        self.wealth = (
+            self.cash + self.position * self.model.price
+        )  # wealth of the agent
+        (
+            self.demand,
+            self.slope,
+        ) = (
+            self.demandAndSlopeCalc()
+        )  # calculating the demand and slope based on the forecast
+        self.utility = self.utilityCalc()  # calculating the utility of the agent
 
     def step(self: ap.Agent):
         """agent centered timeline followed at each timestep"""
-        self.prevActiveRules = self.activeRules.copy()
-        self.currentRule, self.activeRules = self.activateRules()
+        self.prevActiveRules = (
+            self.activeRules.copy()
+        )  # saving the active rules of the previous timestep
+        (
+            self.currentRule,
+            self.activeRules,
+        ) = (
+            self.activateRules()
+        )  # activating rules matching the worldState and selecting the current rule
 
     def specialistSteps(self: ap.Agent):
-        self.forecast = self.expectationFormation()
-        self.demand, self.slope = self.demandAndSlopeCalc()
+        self.forecast = self.expectationFormation(
+            ruleID=self.currentRule
+        )  # calculating the forecast based on the current rule
+        (
+            self.demand,
+            self.slope,
+        ) = (
+            self.demandAndSlopeCalc()
+        )  # calculating the demand and slope based on the forecast
 
     def update(self: ap.Agent):
         """updating central variables of agents"""
-        self.errorVarianceUpdate()
-        self.prevForecastUpdate()
-        self.gARandom = (
-            self.model.randomGenerator()
-        )  # should the random generators be initialized during setup?
+        self.errorVarianceUpdate()  # updating the errorVariance of the previously active predictors
+        self.prevForecastUpdate()  # updating the previous forecast of the previously active predictors
+
+        # genetic algorithm random generators, conditions, and variables
+        self.gARandom = self.model.randomGenerator()
         gARandInt = self.gARandom.integers(1000)
         gACondition = ((self.model.p.forecastAdaptation) & (gARandInt < 4)) | (
             (not self.model.p.forecastAdaptation) & (gARandInt == 0)
@@ -67,6 +96,7 @@ class MarketStatistician(ap.Agent):
         self.record(["forecast", "demand", "cash", "wealth", "position", "utility"])
 
     def end(self: ap.Agent):
+        """documenting agent's set of predictors at the end of the simulation"""
         self.record(["rules"])
 
     def initializeRules(self: ap.Agent, numRules: int) -> dict:
@@ -96,12 +126,14 @@ class MarketStatistician(ap.Agent):
                     .rules
                 )
         else:
+            # creating new rules
             d = {}
             for i in range(1, numRules + 1):
                 d[i] = self.createRule()
         return d
 
     def addPrevForecast(self: ap.Agent, d: dict, pt: float, dt: float):
+        """adding previous forecast to imported rules"""
         for predictor in d:
             d[predictor]["prevForecast"] = (
                 d[predictor]["a"] * (pt + dt) + d[predictor]["b"]
@@ -142,6 +174,7 @@ class MarketStatistician(ap.Agent):
                 if ruleBit is None:
                     pass
                 elif ruleBit != self.model.worldState[ruleBitID]:
+                    # if the ruleBit is not None and does not match the worldState, the rule is not activated
                     break
                 if ruleBitID == 11:
                     self.rules[ruleID]["activationIndicator"] = 1
@@ -154,6 +187,7 @@ class MarketStatistician(ap.Agent):
                         currentRuleKey = ruleID
 
         if currentRuleKey == 0:
+            # if no rule is activated, the default rule is established as weighted average of all rules and activated
             activeRuleKeys = [0]
             weights = [rule["fitness"] for rule in self.rules.values()]
             self.rules[0] = {
@@ -171,14 +205,14 @@ class MarketStatistician(ap.Agent):
                 ),
                 "fitness": np.average(
                     [rule["fitness"] for rule in self.rules.values()], weights=weights
-                ),  # self.model.p.M,
+                ),
                 "accuracy": np.average(
                     [rule["accuracy"] for rule in self.rules.values()], weights=weights
-                ),  # self.model.p.initialPredictorVariance,
+                ),
                 "errorVariance": np.average(
                     [rule["errorVariance"] for rule in self.rules.values()],
                     weights=weights,
-                ),  # self.model.p.initialPredictorVariance,
+                ),
             }
         return currentRuleKey, activeRuleKeys
 
@@ -186,13 +220,7 @@ class MarketStatistician(ap.Agent):
         """calculating the utility of the agent"""
         return -(np.exp(-self.model.p.dorra * (self.demand - self.position)))
 
-    def expectationFormation(self: ap.Agent) -> float:
-        """returning combined expected price plus dividend based on activated rule"""
-        return self.rules.get(self.currentRule).get("a") * (
-            self.model.price + self.model.dividend
-        ) + self.rules.get(self.currentRule).get("b")
-
-    def prevExpectationFormation(self: ap.Agent, ruleID: int) -> float:
+    def expectationFormation(self: ap.Agent, ruleID: int) -> float:
         """returning combined expected price plus dividend based on activated rule"""
         return self.rules.get(ruleID).get("a") * (
             self.model.price + self.model.dividend
@@ -206,6 +234,7 @@ class MarketStatistician(ap.Agent):
         slope = (
             self.rules.get(self.currentRule).get("a") - (1 + self.model.p.interestRate)
         ) / (self.model.p.dorra * self.rules.get(self.currentRule).get("accuracy"))
+        # constrain demand based on multiple criteria
         demand = self.constrainDemand(demand)
         return demand, slope
 
@@ -242,7 +271,8 @@ class MarketStatistician(ap.Agent):
         """updating the previous forecast of the predictors"""
         for ruleID in self.activeRules:
             if ruleID != 0:
-                self.rules[ruleID]["prevForecast"] = self.prevExpectationFormation(
+                # upating the previous forecast of the previously activated predictors
+                self.rules[ruleID]["prevForecast"] = self.expectationFormation(
                     ruleID=ruleID
                 )
 
@@ -324,7 +354,6 @@ class MarketStatistician(ap.Agent):
 
     def geneticAlgorithm(self: ap.Agent):
         """performing the genetic algorithm"""
-        # print(f"\nactivated at timestep: {self.model.t} for agent: {self.id}")
         rulesToBeReplaced = set(
             list(
                 dict(
@@ -349,9 +378,7 @@ class MarketStatistician(ap.Agent):
                 crossoverRandInt = self.gARandom.integers(100)
                 crossoverCondition = (
                     (self.model.p.forecastAdaptation) & (crossoverRandInt < 30)
-                ) | (
-                    (not self.model.p.forecastAdaptation) & (crossoverRandInt < 10)
-                )  # see page 13?
+                ) | ((not self.model.p.forecastAdaptation) & (crossoverRandInt < 10))
                 # crossover takes place with probability 0.3 in the fast adaptation case
                 # and 0.1 in the slow adaptation case
                 if crossoverCondition:
