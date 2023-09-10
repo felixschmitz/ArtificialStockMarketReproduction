@@ -45,8 +45,24 @@ class ArtificialStockMarket(ap.Model):
             self.record("avgDemand", np.average(self.agents.demand))
             self.record("avgWealth", np.average(self.agents.wealth))
             self.record("avgPosition", np.average(self.agents.position))
-            self.record("avgBitsUsed", np.average(self.agents.log.get("bitsUsed")))
-            self.record("avgUtility", np.average(self.agents.log.get("utility")))
+            self.record(
+                "avgBitsUsed",
+                np.average(
+                    [sublist[-1] for sublist in self.agents.log.get("bitsUsed")]
+                ),
+            )
+            self.record(
+                "sumBitsUsed",
+                sum(sublist[-1] for sublist in self.agents.log.get("bitsUsed")),
+            )
+            if self.t > 1:
+                self.record(
+                    "aggregatedVolume",
+                    sum(
+                        abs(sublist[-2] - sublist[-1])
+                        for sublist in self.agents.log.get("position")
+                    ),
+                )
             self.record("anayliticalMarketClearingPrice", self.marketClearingPrice())
         self.hreePrice = self.hreePriceCalc()
         self.record("hreeForecast", self.hreeForecastCalc())
