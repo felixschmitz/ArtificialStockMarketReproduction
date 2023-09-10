@@ -1,10 +1,11 @@
 parameters = {
-    "importPath": r"results/ASM_50000_23082023-175615",  # path to innate rules
-    "seed": 42,
+    "experimentSplit": 1,  # binary with 0 for no split and 1 for split
+    "importPath": r"results/ASM_50000_30082023-133915",  # path to innate rules
+    "seed": 42,  # seed for random number generator
     "forecastAdaptation": 0,  # binary with 0 for slow/hree and 1 for fast/complex
     "mode": 0,  # with standard mode [0], diagnostics test "clamped" hree predictors [1],
     # diagnostics test hree adaptation [2], and innating rules (pre-trained rules) [3]
-    "steps": 5e4,  # 2.5e5,  # num of steps/iterations by the model
+    "steps": 2.5e5,  # num of steps/iterations by the model
     "N": 25,  # num of agents & num of assets
     "averageDividend": 10,  # \bar{d}
     "autoregressiveParam": 0.95,  # in the paper rho
